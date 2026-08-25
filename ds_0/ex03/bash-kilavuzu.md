@@ -940,3 +940,350 @@ Bash'i öğrenirken şu sırayla küçük denemeler yapabilirsin:
 11. `psql` ile SQL çalıştırma
 
 Her konuyu küçük bir scriptle test edip sonra Ex03 scriptine bağlamak, uzun bir scripti ezberlemekten daha öğreticidir.
+
+---
+
+## 17. Ek sorular (detayli cevaplar)
+
+### 1) Ondalikli sayilar: `bc`, `awk`, `BEGIN` ve Bash icinde Python kullanimi
+
+Bash'in kendi aritmetik yapisi (`$((...))`) tam sayi odaklidir. Ondalikli islemlerde ya hata alirsin ya da beklenmeyen yuvarlama gorursun. Bu nedenle dis araclar kullanilir.
+
+#### `bc` nedir?
+
+- `bc` bir hesap makinesi dilidir (command-line calculator).
+- Ondalikli hesap, hassasiyet (`scale`) ve kuvvet gibi islemler yapar.
+
+Ornek:
+
+```bash
+result="$(echo 'scale=4; 10.5 / 3' | bc)"
+echo "$result"   # 3.5000
+```
+
+`scale=4` ondalik basamak sayisini belirler.
+
+#### `awk` nedir?
+
+- `awk` metin satirlarini ve kolonlarini islemek icin yazilmis guclu bir arac/dildir.
+- Sayisal islemler de yapabilir.
+
+Ornek:
+
+```bash
+result="$(awk 'BEGIN { printf "%.2f", 10.5 / 3 }')"
+echo "$result"   # 3.50
+```
+
+#### `BEGIN` nedir?
+
+`awk` tarafinda `BEGIN` blogu, girdi satirlari okunmadan once bir kez calisir.
+
+- Dosya okumadan sadece hesap yapmak istiyorsan idealdir.
+- `printf` formatlamayi kontrol eder (`%.2f` = 2 ondalik).
+
+#### Bash scriptinde Python nasil kullanilir?
+
+Python'u iki sekilde cagirabilirsin.
+
+Tek satir:
+
+```bash
+result="$(python3 -c 'print(round(10.5/3, 2))')"
+echo "$result"
+```
+
+Heredoc ile:
+
+```bash
+result="$(python3 - <<'PY'
+value = 10.5 / 3
+print(f"{value:.4f}")
+PY
+)"
+echo "$result"
+```
+
+Pratik secim:
+
+- Basit matematik: `bc`
+- Metin + matematik: `awk`
+- Daha karmasik hesap/mantik: `python3`
+
+### 2) `PGPASSWORD=mysecretpassword ...` satirinda gecici degisken
+
+Evet, burada gecici ortam degiskeni `PGPASSWORD`'dur.
+
+```bash
+PGPASSWORD=mysecretpassword psql -h localhost -U acosgun -d piscineds
+```
+
+Bu ifade sadece o tek komut icin `PGPASSWORD` degeri verir.
+
+- `PGPASSWORD` PostgreSQL istemcilerinin tanidigi ozel bir ortam degiskenidir.
+- `psql`, parola sorarken bu degiskene bakabilir.
+
+Kalici tanimlamak istersen:
+
+```bash
+export PGPASSWORD=mysecretpassword
+psql -h localhost -U acosgun -d piscineds
+```
+
+Gecici kullanim genelde daha guvenlidir; shell oturumuna kalici parola birakmaz.
+
+Not: Uretimde parola icin `.pgpass` veya secret yonetimi daha iyi yaklasimdir.
+
+### 3) `$?` tam olarak hangi komutun sonucu?
+
+`$?`, **hemen once calisan komutun** cikis kodudur.
+
+Ornek:
+
+```bash
+ls /var >/dev/null
+echo "$?"   # genelde 0
+
+ls /olmayan_klasor >/dev/null 2>&1
+echo "$?"   # genelde 2
+```
+
+Script icinde de ayni kural gecerli: `$?` yazdigindan hemen once ne calistiysa onun sonucu gelir.
+
+Tum scriptin cikis kodu ise script bittikten sonra terminalde okunur:
+
+```bash
+./my_script.sh
+echo "$?"   # bu kez scriptin genel cikis kodu
+```
+
+Yani baglama gore degisir:
+
+- Scriptin icinde: son komut
+- Script disinda: script komutunun kendisi
+
+### 4) Bash array yaziminda virgul ve `[]` kullanimi
+
+Su yazim dogrudur:
+
+```bash
+files=("oct.csv" "nov.csv" "dec.csv")
+```
+
+- Bash'te elemanlar virgul ile ayrilmaz, bosluk ile ayrilir.
+- Kose parantezle liste kurma (`["a", "b"]`) Bash'te yoktur; bu Python/JSON tarzi bir gosterdir.
+
+Eleman ekleme:
+
+```bash
+files+=("jan.csv")
+```
+
+Index ile atama:
+
+```bash
+files[0]="oct.csv"
+files[1]="nov.csv"
+```
+
+Tum elemanlar:
+
+```bash
+printf '%s\n' "${files[@]}"
+```
+
+### 5) `declare -A settings` ve associative array
+
+Evet, `-A` bu degiskenin associative array (anahtar-deger dizisi) oldugunu belirtir.
+
+```bash
+declare -A settings
+settings[host]="localhost"
+settings[db]="piscineds"
+echo "${settings[host]}"
+```
+
+Associative array:
+
+- Sayisal index yerine metinsel anahtar kullanir.
+- C++ `std::map` mantigina benzer.
+- JSON objesine de yuzeysel olarak benzer (key-value), ama JSON degildir; sadece shell degisken yapisidir.
+
+### 6) `basename "$csv_file" .csv` uzantiyi nasil cikariyor?
+
+`basename` bir dosya yolunun son parcasini alir.
+
+```bash
+basename "/tmp/a/b/data_2022_oct.csv"
+# data_2022_oct.csv
+```
+
+Ikinci arguman (`.csv`) verilirse, sondaki bu ek varsa cikarir:
+
+```bash
+basename "/tmp/a/b/data_2022_oct.csv" .csv
+# data_2022_oct
+```
+
+Dolayisiyla:
+
+```bash
+table_name="$(basename "$csv_file" .csv)"
+```
+
+dosya yolundan tablo adini turetir.
+
+Alternatif sadece Bash ile:
+
+```bash
+file_name="${csv_file##*/}"   # yolu at, sadece dosya adi
+table_name="${file_name%.csv}" # sondaki .csv'yi at
+```
+
+### 7) `fi` ne ise yarar?
+
+Evet, Bash'e ozeldir. `if` blogunun bittigini belirtir.
+
+```bash
+if [[ "$name" == "Ayhan" ]]; then
+    echo "Isim dogru"
+else
+    echo "Farkli isim"
+fi
+```
+
+`fi`, `if`'in tersten yazimi gibi dusunulebilir ve blogu kapatir.
+
+Benzer kapanislar:
+
+- `do ... done` (dongu)
+- `case ... esac`
+
+### 8) `[ -e "$csv_file" ] || continue` ifadesi
+
+Evet, `||` mantiksal OR operatorudur.
+
+Mantik:
+
+1. Sol taraf calisir: `[ -e "$csv_file" ]`
+2. Sol taraf basarisizsa (`false`), sag taraf calisir: `continue`
+3. Sol taraf basariliysa (`true`), sag taraf calismaz
+
+Yani pratikte:
+
+- Dosya yoksa: `continue`
+- Dosya varsa: asagiya devam
+
+Bu bir satirlik "guard" kalibidir.
+
+### 9) `done` ne ise yarar?
+
+`done`, `for`, `while`, `until` dongu blogunu kapatir.
+
+```bash
+for item in one two three; do
+    echo "$item"
+done
+```
+
+`do` ile baslayan dongu govdesi `done` ile biter. Evet, bu da Bash/shell ailesine ozgudur.
+
+### 10) Fonksiyon icin baska format var mi?
+
+Bash'te iki yaygin tanim vardir:
+
+```bash
+my_func() {
+    echo "hello"
+}
+```
+
+ve
+
+```bash
+function my_func {
+    echo "hello"
+}
+```
+
+Birlesik kullanim da gorulebilir:
+
+```bash
+function my_func() {
+    echo "hello"
+}
+```
+
+En tasinabilir ve yaygin stil `my_func() { ... }` kalibidir.
+
+"Fonksiyon deger dondurmez" ifadesinin anlami:
+
+- `return` sadece 0-255 araliginda cikis kodu dondurur.
+- Metinsel/sayisal sonuc icin stdout kullanilir.
+
+Ornek:
+
+```bash
+sum() {
+    local a="$1" b="$2"
+    echo $((a + b))
+}
+
+result="$(sum 3 5)"
+echo "$result"   # 8
+```
+
+### 11) `set -euo pipefail` disinda hata yakalama var mi?
+
+Var. Bunlar en yaygin temel set ama tek yol degil.
+
+Yontemler:
+
+- Acik kontrol: `if ! command; then ... fi`
+- Kisa devre: `command || { echo "hata"; exit 1; }`
+- `trap '...' ERR` ile hata aninda yakalama
+- `set -E` ile fonksiyon/subshell'lerde `ERR` davranisini genisletme
+- `psql -v ON_ERROR_STOP=1` gibi arac-ozel bayraklar
+
+Sifira bolme ornegi:
+
+```bash
+echo $((1/0))
+```
+
+Bu komut Bash'te "division by 0" hatasi verir ve komut basarisiz olur.
+
+- `set -e` aciksa script genelde burada durur.
+- `set -e` kapaliysa script devam edebilir.
+
+Ama her hata turu aritmetik degil. Ornegin pipe, alt komutlar, kosul bloglari gibi durumlarda ek kontrol yazmak gerekir. Bu nedenle uretim scriptlerinde sadece `set` bayraklarina guvenmek yerine acik hata mesaji ve `exit` kullanmak daha saglamdir.
+
+### 12) `trap ... EXIT` Python `finally` gibi mi?
+
+Cok benzer bir amaca hizmet eder: script nasil biterse bitsin (normal bitis, `exit`, bircok hata durumu) temizlik kodunu calistirirsin.
+
+```bash
+cleanup() {
+    echo "Temizlik yapiliyor"
+}
+
+trap cleanup EXIT
+```
+
+Benzerlik:
+
+- Python `finally`: bloktan cikarken garanti calisir
+- Bash `trap ... EXIT`: shell prosesi cikarken garanti calistirmayi hedefler
+
+Fark:
+
+- `finally` dilin kontrol yapisinin parcasi
+- `trap` sinyal/olay tabanli shell mekanizmasi
+
+Ek olarak `INT`, `TERM` gibi sinyaller icin de trap koyabilirsin:
+
+```bash
+trap cleanup EXIT INT TERM
+```
+
+Bu sayede Ctrl+C gibi kesmelerde de temizlik yapabilirsin.
