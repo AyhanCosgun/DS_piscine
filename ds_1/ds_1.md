@@ -177,3 +177,282 @@ Veri boru hatlarının (Data Pipelines) standart yaşam döngüsüdür:
 - **"Garbage In, Garbage Out":** Kirli, tekilleştirilmemiş veya eksik veriyle eğitilen makine öğrenmesi modelleri hatalı tahminler üretir.
 - **Sektör Gerçeği:** Bir Veri Bilimcisinin vaktinin **%70-80'i** veri hazırlama, temizleme ve ETL adımlarında geçer. 42 Piscine'inin `ds_0` ve `ds_1` ile başlamasının sebebi size bu sağlam temeli kazandırmaktır.
 
+---
+
+## Soru 6 (Ek Soru 1)
+> **Bu birleştirme türlerini biraz daha detaylandırıp örneklendirebilir misin? UNION, UNION ALL, başka UNION çeşitleri varsa, LEFT JOIN, RIGHT JOIN, JOIN, başka çeşitleri varsa, bunların görevlerini farklarını basit örnekler ile örnekleyerek açıkla.**
+
+### Cevap:
+
+SQL'de veri birleştirmeleri temel olarak **Dikey (Küme / Set İşlemleri)** ve **Yatay (Tablo İlişkilendirme / JOIN)** olmak üzere ikiye ayrılır.
+
+---
+
+### A) DİKEY BİRLEŞTİRMELER (Küme Operatörleri - Satır Bazlı)
+
+İki tablonun **kolon sayıları ve veri tipleri aynı** olduğunda satırları alt alta eklemek için kullanılır.
+
+#### Örnek Tablolarımız:
+```
+   [Tablo_A]              [Tablo_B]
+┌────┬─────────┐       ┌────┬─────────┐
+│ id │  isim   │       │ id │  isim   │
+├────┼─────────┤       ├────┼─────────┤
+│ 1  │ Elma    │       │ 2  │ Armut   │
+│ 2  │ Armut   │       │ 3  │ Muz     │
+└────┴─────────┘       └────┴─────────┘
+```
+
+#### 1. `UNION` (Dikey Birleştir + Mükerrerleri Ayıkla)
+İki tablodaki satırları alt alta ekler ve aynı olan (duplicate) satırları eler (tekilleştirir).
+```sql
+SELECT * FROM Tablo_A
+UNION
+SELECT * FROM Tablo_B;
+```
+**Sonuç (3 Satır):**
+```
+┌────┬─────────┐
+│ 1  │ Elma    │
+│ 2  │ Armut   │  <-- 'Armut' her iki tabloda da vardı, tek satıra indi.
+│ 3  │ Muz     │
+└────┴─────────┘
+```
+
+#### 2. `UNION ALL` (Dikey Birleştir + Hepsini Koru - Hızlı)
+İki tablodaki satırları hiç kontrol etmeden doğrudan alt alta ekler. Mükerrer satırları elemez, bu yüzden `UNION`'a göre **çok daha hızlıdır**.
+```sql
+SELECT * FROM Tablo_A
+UNION ALL
+SELECT * FROM Tablo_B;
+```
+**Sonuç (4 Satır):**
+```
+┌────┬─────────┐
+│ 1  │ Elma    │
+│ 2  │ Armut   │  <-- Tablo_A'dan
+│ 2  │ Armut   │  <-- Tablo_B'den (Mükerrer satır korundu)
+│ 3  │ Muz     │
+└────┴─────────┘
+```
+
+#### 3. `INTERSECT` (Kesişim Kümesi)
+Sadece her iki tabloda da **ortak olan** satırları getirir.
+```sql
+SELECT * FROM Tablo_A
+INTERSECT
+SELECT * FROM Tablo_B;
+```
+**Sonuç (1 Satır):**
+```
+┌────┬─────────┐
+│ 2  │ Armut   │
+└────┴─────────┘
+```
+
+#### 4. `EXCEPT` (veya `MINUS` - Fark Kümesi)
+Birinci tabloda olup ikinci tabloda **olmayan** satırları getirir.
+```sql
+SELECT * FROM Tablo_A
+EXCEPT
+SELECT * FROM Tablo_B;
+```
+**Sonuç (1 Satır):**
+```
+┌────┬─────────┐
+│ 1  │ Elma    │
+└────┴─────────┘
+```
+
+---
+
+### B) YATAY BİRLEŞTİRMELER (JOIN Operatörleri - Kolon Bazlı)
+
+İki tablodaki bilgileri ortak bir anahtar kolon (`product_id` veya `id` gibi) üzerinden yan yana bağlamak için kullanılır.
+
+#### Örnek Tablolarımız:
+```
+  [Musteri_Siparis (Sol)]              [Urun_Katalog (Sağ)]
+┌────────────┬────────────┬────────┐ ┌────────────┬────────────┐
+│ siparis_id │ product_id │ miktar │ │ product_id │  kategori  │
+├────────────┼────────────┼────────┤ ├────────────┼────────────┤
+│ 101        │ 1          │ 5      │ │ 1          │ Elektronik │
+│ 102        │ 2          │ 3      │ │ 2          │ Giyim      │
+│ 103        │ 99         │ 1      │ │ 3          │ Kitap      │
+└────────────┴────────────┴────────┘ └────────────┴────────────┘
+```
+*(Not: `siparis_id: 103` için `product_id: 99` katalogda yok; katalogdaki `product_id: 3` ise hiç sipariş edilmemiş).*
+
+---
+
+#### 1. `INNER JOIN` (veya sadece `JOIN`)
+Yalnızca her iki tabloda da **eşleşen anahtara sahip** satırları getirir. Eşleşmeyen satırlar atılır.
+```sql
+SELECT * FROM Musteri_Siparis S
+INNER JOIN Urun_Katalog K ON S.product_id = K.product_id;
+```
+**Sonuç (2 Satır):**
+```
+┌────────────┬────────────┬────────┬────────────┬────────────┐
+│ siparis_id │ product_id │ miktar │ product_id │  kategori  │
+├────────────┼────────────┼────────┼────────────┼────────────┤
+│ 101        │ 1          │ 5      │ 1          │ Elektronik │
+│ 102        │ 2          │ 3      │ 2          │ Giyim      │
+└────────────┴────────────┴────────┴────────────┴────────────┘
+```
+*(Sipariş 103 ve Kitap kayboldu).*
+
+---
+
+#### 2. `LEFT JOIN` (veya `LEFT OUTER JOIN`)
+**Sol tablodaki (Musteri_Siparis) TÜM satırları korur.** Sağdaki tabloda karşılığı varsa kolonları doldurur, karşılığı yoksa `NULL` yazar.
+```sql
+SELECT * FROM Musteri_Siparis S
+LEFT JOIN Urun_Katalog K ON S.product_id = K.product_id;
+```
+**Sonuç (3 Satır):**
+```
+┌────────────┬────────────┬────────┬────────────┬────────────┐
+│ siparis_id │ product_id │ miktar │ product_id │  kategori  │
+├────────────┼────────────┼────────┼────────────┼────────────┤
+│ 101        │ 1          │ 5      │ 1          │ Elektronik │
+│ 102        │ 2          │ 3      │ 2          │ Giyim      │
+│ 103        │ 99         │ 1      │ NULL       │ NULL       │ <-- Sipariş silinmedi!
+└────────────┴────────────┴────────┴────────────┴────────────┘
+```
+
+---
+
+#### 3. `RIGHT JOIN` (veya `RIGHT OUTER JOIN`)
+**Sağ tablodaki (Urun_Katalog) TÜM satırları korur.** Solda karşılığı yoksa `NULL` yazar.
+```sql
+SELECT * FROM Musteri_Siparis S
+RIGHT JOIN Urun_Katalog K ON S.product_id = K.product_id;
+```
+**Sonuç (3 Satır):**
+```
+┌────────────┬────────────┬────────┬────────────┬────────────┐
+│ siparis_id │ product_id │ miktar │ product_id │  kategori  │
+├────────────┼────────────┼────────┼────────────┼────────────┤
+│ 101        │ 1          │ 5      │ 1          │ Elektronik │
+│ 102        │ 2          │ 3      │ 2          │ Giyim      │
+│ NULL       │ NULL       │ NULL   │ 3          │ Kitap      │ <-- Hiç satılmayan kitap
+└────────────┴────────────┴────────┴────────────┴────────────┘
+```
+
+---
+
+#### 4. `FULL OUTER JOIN`
+Hem soldaki hem sağdaki **bütün satırları** korur. Eşleşmeyen her yere `NULL` koyar.
+```sql
+SELECT * FROM Musteri_Siparis S
+FULL OUTER JOIN Urun_Katalog K ON S.product_id = K.product_id;
+```
+**Sonuç (4 Satır):**
+```
+┌────────────┬────────────┬────────┬────────────┬────────────┐
+│ siparis_id │ product_id │ miktar │ product_id │  kategori  │
+├────────────┼────────────┼────────┼────────────┼────────────┤
+│ 101        │ 1          │ 5      │ 1          │ Elektronik │
+│ 102        │ 2          │ 3      │ 2          │ Giyim      │
+│ 103        │ 99         │ 1      │ NULL       │ NULL       │
+│ NULL       │ NULL       │ NULL   │ 3          │ Kitap      │
+└────────────┴────────────┴────────┴────────────┴────────────┘
+```
+
+---
+
+#### 5. `CROSS JOIN` (Kartezyen Çarpım)
+Koşulsuz olarak Sol tablodaki her satırı Sağ tablodaki her satırla tek tek eşleştirir. ($M \times N$ satır üretir).
+
+---
+
+## Soru 7 (Ek Soru 2)
+> **Önceki açıklamadaki "Kayıt Sayısı Kontrolü: Birleştirme öncesindeki customers satır sayısı ile birleştirme sonrasındaki customers satır sayısı birebir eşit olmalıdır." kısmını tam oturtamadım. LEFT JOIN items tablosunda customers'ta olmayan bir product_id'ye ait satır olduğu durumda ne yapıyor ki? Birleştirme tablosuna eklemiyor mu? Böylece customers satır sayısı artmayacak mı?**
+
+### Cevap:
+
+**Hayır, artmaz! `LEFT JOIN`'in çalışma mantığı tam olarak şudur:**
+
+`LEFT JOIN` yaparken odak noktamız **SOLDAKİ (`customers`) tablodur**. `LEFT JOIN`, sağdaki (`items`) tablonun tamamını alıp masaya dökmez; yalnızca **soldaki her bir satır için sağdan parça arar.**
+
+### Durum Senaryoları:
+
+1. **Senaryo A (`customers`'taki ürün `items`'ta var):**  
+   Müşteri `product_id = 1` almış. `items` tablosunda `product_id = 1` aranır $\rightarrow$ Bulunur. O satıra kategori ve marka eklenir.  
+   $\rightarrow$ **Satır sayısı: 1 satır olarak kalır.**
+
+2. **Senaryo B (`customers`'taki ürün `items`'ta YOK):**  
+   Müşteri `product_id = 999` almış (katalogdan silinmiş eski ürün). `items`'ta aranır $\rightarrow$ Bulunamaz.  
+   `LEFT JOIN` bu satırı silmez; kategori ve marka kolonlarına `NULL` yazar.  
+   $\rightarrow$ **Satır sayısı: 1 satır olarak kalır.**
+
+3. **Senaryo C (`items`'ta olan ama `customers`'ta HİÇ OLMAYAN ürün):**  
+   Katalogda `product_id = 555` adında bir ürün var ama bugüne kadar hiçbir müşteri bu ürünü görüntülememiş veya satın almamış.  
+   `LEFT JOIN` sol tablodaki satırlar üzerinden döner. Sol tabloda `555`'e ait bir müşteri hareketi olmadığı için **bu ürünü birleştirme tablosuna ASLA EKLEMEZ ve YOK SAYAR!**  
+   $\rightarrow$ *(Bu ürünün sonuca eklenmesi ancak `RIGHT JOIN` veya `FULL OUTER JOIN` ile mümkün olurdu).*
+
+### Peki Satır Sayısı Ne Zaman Artar? (Tehlike Noktası!)
+Satır sayısı sadece ve sadece **`items` tablosunda AYNI `product_id` birden fazla satırda varsa (mükerrer ise)** artar!
+Örneğin `items` tablosunda `product_id = 1` için 2 farklı satır varsa, müşterinin 1 adet işlem satırı sağdaki 2 satırla da eşleşir ve çıktı tablosunda **2 satıra çoğalır (Kartezyen çoğalma - Fan out).**
+
+Eğer `items` tablosunda her `product_id` tekilse (unique), `customers` tablosunun satır sayısı **kesinlikle ne 1 eksilir ne de 1 artar!**
+
+---
+
+## Soru 8 (Ek Soru 3)
+> **Subject açıklamalarına göre duplicate temizleme işi sadece birleştirilmiş customers tablosuna yapılıyor, yanlış mı anlıyorum?
+> "Bire-Çok (1-to-Many) Çoğalma Riski: Eğer items tablosunda aynı product_id birden fazla satırda varsa, LEFT JOIN işlemi customers tablosundaki işlem satırlarını katlar (satır sayısı artar). Bu yüzden items tablosunda product_id'nin tekil (unique) olduğundan emin olunmalıdır." bu açıklamaya göre customers ile items'i birleştirmeden önce items için de bir duplicate temizliği gerekmez mi? Subject bunu söylememiş ama bizden bekliyor mu acaba?**
+
+### Cevap:
+
+### 🚨 Gerçek Veri İncelemesi: `item.csv` dosyasında duplicate var mı?
+Veri setimizdeki `subject/item/item.csv` dosyasını terminalden doğrudan analiz ettiğimizde çok kritik bir bulgu ortaya çıkmaktadır:
+
+- Toplam satır sayısı: **109.580**
+- Tekrar eden (duplicate) `product_id` sayısı: **45.138 adet!**
+
+Örnek satırlar (`product_id = 5712790`):
+```csv
+5712790,1487580005268456192,,f.o.x
+5712790,,,
+5712790,1487580005268456192,,
+```
+Görüldüğü üzere aynı ürün için hem dolu bilgiler (`f.o.x` markalı) hem de eksik/boş bilgiler içeren 3 farklı satır bulunmaktadır!
+
+### Neden Subject Doğrudan Söylemedi Ama Bizden Bunu Bekliyor?
+1. **Subject Uyarısı:** Subject ex03'te özellikle şunu vurgular:
+   > *"You must combine the 'customers' tables with 'items' in the 'customers' table. **Be careful not to lose any information**"*
+2. Eğer `items` tablosunu tekilleştirmeden doğrudan `LEFT JOIN` yaparsanız:
+   - 1 müşteri işlemi 3 satıra katlanır.
+   - Toplam ciro, sipariş adedi ve müşteri metrikleri yapay olarak 3 katına çıkar!
+   - Bu durum `ds_2` (Data Viz) ve `ds_4` (Machine Learning) modüllerindeki tüm analizleri ve modelleri **tamamen bozar**.
+3. **Çözüm:** `ex03` (fusion) adımında `items` tablosunu birleştirmeden önce, her bir `product_id` için **en dolu/en güncel tek satırı** seçecek şekilde bir alt sorgu (`DISTINCT ON (product_id)` veya filtre) ile `JOIN` yapılmalıdır.
+
+---
+
+## Soru 9 (Ek Soru 4)
+> **ex03'teki birleşmeden sonra da bir duplicate temizliği bekleniyor mu? Beklenmiyorsa da sektörde bu tarz büyük birleştirmelerden sonra bir duplicate temizliği yapılır mı, gerek olur mu, böyle bir gelenek var mı?**
+
+### Cevap:
+
+### 1. Bu Projede Bekleniyor mu?
+Hayır. Çünkü doğru bir veri mimarisinde:
+- `customers` tablosu `ex02`'de zaten temizlenmiştir.
+- `items` tablosundaki ürünler `product_id` bazında tekil olarak `LEFT JOIN` ile bağlandığında, **birleşme sonucu yeni hiçbir duplicate ÜRETİLMEZ.**
+
+### 2. Sektörde Durum Nedir? Birleştirmeden Sonra Duplicate Temizliği Yapılır mı?
+Sektördeki modern veri mühendisliği standartlarında (Modern Data Stack: dbt, Snowflake, BigQuery, Databricks):
+
+**❌ Kötü Alışkanlık (Antipattern):**  
+Büyük bir `JOIN` yaptıktan sonra *"ne olur ne olmaz"* diyerek çıktının sonuna körlemesine `SELECT DISTINCT` veya satır silme çalıştırmak **çok yanlış ve tehlikeli bir yöntemdir**. Çünkü:
+- Milyonlarca satırda `DISTINCT` sorguyu inanılmaz yavaşlatır.
+- Asıl problem olan "hatalı JOIN ilişkisini" (1-to-many patlamasını) gizler ve kök nedeni çözmez.
+
+**✅ Sektör Standardı (Data Assertion / Kalite Testleri):**  
+Sektörde birleştirme bittikten sonra temizlik yapmak yerine **Otomasyon Testleri (Assertions)** çalıştırılır:
+1. **Row Count Assertion:** Birleştirme öncesi `customers` satır sayısı ile sonrası eşit mi? (`COUNT(*) = COUNT(*)`)
+2. **Primary Key Test:** İşlem anahtarı tekil mi?
+3. **Null Check:** Beklenmeyen `NULL` patlaması var mı?
+
+Eğer test başarısız olursa (örneğin satır sayısı artmışsa), veri mühendisi çıktıyı temizlemekle uğraşmaz; doğrudan `JOIN` mantığına ve boyut tablosundaki (`items`) tekillik problemine müdahale eder.
