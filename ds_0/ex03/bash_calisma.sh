@@ -44,11 +44,83 @@
 # for csv_file in ../subject/customer/*.csv; do
 #     echo "$csv_file"
 # done
-pwd
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-echo "BASH_SOURCE[0]: ${BASH_SOURCE[0]}"
-dirname -- "${BASH_SOURCE[0]}"
-echo "Script directory: $(dirname -- "${BASH_SOURCE[0]}")"
-echo "Script directory (absolute path): $SCRIPT_DIR"
-cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
-pwd
+# pwd
+ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# echo "BASH_SOURCE[0]: ${BASH_SOURCE[0]}"
+# dirname -- "${BASH_SOURCE[0]}"
+# echo "Script directory: $(dirname -- "${BASH_SOURCE[0]}")"
+# echo "Script directory (absolute path): $SCRIPT_DIR"
+# cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+# pwd
+
+#### set -euo pipefail kullanımı
+
+# set -e  #errexit bayrağı: herhangi bir komut başarısız olursa, script hemen durur.
+# echo "1"
+# false
+# echo "2"
+
+#set -u  #nounset bayrağı: tanımsız değişkenlere erişmeye çalışıldığında hata verir.
+#echo "$NAME"
+
+#set -o pipefail  #pipefail bayrağı: bir pipeline'daki herhangi bir komut başarısız olursa, pipeline'ın tamamı başarısız sayılır.
+
+# set -e
+# set -o pipefail
+
+# false | echo "Merhaba"
+
+# echo "Script devam etti"
+
+##VEYA
+
+#set -eo pipefail
+# cat $SCRIPT_DIR/ornek.txt | grep "Ayhan" | sort
+# echo $?
+
+
+# | Kısa | Uzun         |
+# | ---- | ------------ |
+# | `-e` | `-o errexit` |
+# | `-u` | `-o nounset` |
+# | `-f` | `-o noglob`  |
+# | `-x` | `-o xtrace`  |
+
+
+# shopt -s nullglob
+
+# for csv_file in $SCRIPT_DIR/*.csv; do
+#     echo "csv_file = $csv_file"
+
+#     if [ -e "$csv_file" ]; then
+#         echo "Dosya gerçekten var."
+#     else
+#         echo "Bu gerçek bir dosya değil."
+#     fi
+# done
+
+
+   ### dirname ve basename kullanımı
+# SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# echo "Script directory: $SCRIPT_DIR"
+# echo "dirname of script directory: $(dirname $SCRIPT_DIR)"
+# echo "basename of script directory: $(basename $SCRIPT_DIR)"
+
+   ### -v ile değişkenleri psql'e aktarma nın önemi
+
+# isim="O'Reilly"
+
+# psql -h localhost -U postgres -p 5432  -d postgres\
+#     -v isim="$isim" \
+# <<SQL
+# INSERT INTO author (name)
+# VALUES (:'isim');
+# SQL
+
+isim="O'Reilly2"
+
+psql -h localhost -U postgres -p 5432  -d postgres\
+<<SQL
+INSERT INTO author (name)
+VALUES ($isim);
+SQL
