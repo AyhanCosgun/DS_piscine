@@ -1,2 +1,4 @@
 # Ignore large subject dataset directory
 ds_0/subject/
+ds_1/subject/
+ds_1/*.csv
