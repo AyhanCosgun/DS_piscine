@@ -1,3 +1,6 @@
+\echo '================================================================================'
+\echo 'Processing: items_table.sql'
+
 DROP TABLE IF EXISTS items;
 
 CREATE TABLE items (
@@ -7,4 +10,7 @@ CREATE TABLE items (
     brand TEXT
 );
 
-\copy items FROM '../subject/item/items.csv' WITH (FORMAT csv, HEADER true);
+\echo 'Loading data in item.csv'
+\copy items FROM '../subject/item/item.csv' WITH (FORMAT csv, HEADER true);
+\echo 'Data loaded successfully into items table.'
+\echo '================================================================================'
