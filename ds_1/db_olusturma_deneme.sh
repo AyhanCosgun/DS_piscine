@@ -1,2 +1,6 @@
-docker run --name my_postgres_container -e POSTGRES_PASSWORD=123 -d postgres &&
-psql -h localhost -U postgres -d postgres -c "CREATE DATABASE my_database;" &&
+docker run --name postgres-test \
+  -e POSTGRES_PASSWORD=test123 \
+  -p 5432:5432 \
+  -d postgres:14
+
+  psql -h localhost -p 5432 -U postgres -d postgres
