@@ -11,15 +11,32 @@ DB_PORT="5432"
 DB_USER="acosgun"
 DB_NAME="piscineds"
 
+if [ ! -d "$CUSTOMER_DIR" ]; then
+	echo "Customer directory not found in path: $CUSTOMER_DIR" >&2
+	echo "Exiting the script." >&2
+	exit 1
+fi
+
+shopt -s nullglob
+csv_files=("$CUSTOMER_DIR"/*.csv)
+if [ ${#csv_files[@]} -eq 0 ]; then
+	echo "No CSV files found in $CUSTOMER_DIR" >&2
+	echo "Exiting the script." >&2
+	exit 1
+fi
+shopt -u nullglob
+
+echo "Found ${#csv_files[@]} CSV files in $CUSTOMER_DIR" >&2
+echo "Connecting to database..." >&2
+
 {
-	for csv_file in "$CUSTOMER_DIR"/*.csv; do
-		[ -e "$csv_file" ] || continue
-			table_name=$(basename "$csv_file" .csv)
-			file_name=$(basename "$csv_file")
+	for csv_file in "${csv_files[@]}"; do
+		table_name=$(basename "$csv_file" .csv)
+		file_name=$(basename "$csv_file")
 
-			echo "creating SQL code for $table_name" >&2
+		echo "creating SQL code for $table_name" >&2
 
-			cat <<SQL
+		cat <<SQL
 \echo '================================================================================'
 \echo 'Processing: $file_name'
 
@@ -43,3 +60,5 @@ SQL
 	done
 
 } | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1
+
+echo "All the tables have been created and data loaded successfully." >&2

@@ -1,6 +1,10 @@
 \echo '================================================================================'
 \echo 'Processing: table.sql'
 
+\set ON_ERROR_STOP on
+
+BEGIN;
+
 DROP TABLE IF EXISTS data_2022_oct;
 
 CREATE TABLE data_2022_oct (
@@ -14,5 +18,7 @@ CREATE TABLE data_2022_oct (
 
 \echo 'Loading data in data_2022_oct.csv'
 \copy data_2022_oct FROM '../subject/customer/data_2022_oct.csv' WITH (FORMAT csv, HEADER true);
+
 \echo 'Data loaded successfully into data_2022_oct table.'
 \echo '================================================================================'
+COMMIT;

@@ -752,3 +752,309 @@ Bu sayede her ürünün **en dolu, en eksiksiz tekil satırı** seçilir ve `cus
 1. Hiçbir müşteri hareketi silinmez (veri kaybı sıfır).
 2. Hiçbir müşteri hareketi katlanıp çoğalmaz (satır sayısı birebir korunur).
 3. Müşteri işlemleri marka ve kategori bilgileriyle kusursuz şekilde zenginleşmiş olur.
+
+---
+
+## Soru 16 (Ek Sorular 3 - 1)
+> **Öncelikle ex02 için bir duplicate temizleme işlemi ve ex03'te de bir tekilleştirme işlemi yapılıyor. ex03'te tekilleştirme işi `DISTINCT ON` ile yapılmış, peki ex02'deki duplicate temizleme neden benzer bir mantıkla `DISTINCT ON` ile yapılamıyor?**
+
+### Cevap:
+
+Bu durum, iki tablonun **temsil ettiği veri doğasının (Data Archetype)** birbirinden tamamen farklı olmasından kaynaklanır:
+
+```
+┌────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────┐
+│                 ex03: [items] Tablosu                  │               ex02: [customers] Tablosu                │
+│       (Master Data / Boyut Tablosu - Statik)           │       (Event Stream / Hareket Tablosu - Dinamik)       │
+├────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ • product_id = 101 olan ürün dünyada TEK bir varlıktır.│ • Bir müşteri AYNI ürünü günlerce/aylarca arayla      │
+│ • Tabloda bu ürün için kaç satır olursa olsun,        │   defalarca görüntüleyebilir, sepete atabilir ve       │
+│   hedefimiz TÜM TABLODAN SADECE 1 satır seçmektir.     │   satın alabilir. Bu tekrarlar MEŞRUDUR ve kalmalıdır! │
+│ • Çözüm: DISTINCT ON (product_id)                      │ • Sadece 1 saniye arayla gelen kaza/sunucu kopyaları   │
+│   (Küresel Varlık Tekilleştirme)                       │   silinmelidir (Ardışık Zaman Karşılaştırması).        │
+└────────────────────────────────────────────────────────┴────────────────────────────────────────────────────────┘
+```
+
+---
+
+### ex02'de `DISTINCT ON` Kullanmayı Denersek Ne Olur? (2 Senaryo Analizi)
+
+#### Senaryo 1: `DISTINCT ON (user_id, user_session, event_type, product_id)` Yazarsak:
+- `DISTINCT ON`, `event_time`'ı dikkate almadan o kullanıcı ve ürün için tablodan **yalnızca 1 satır** seçer.
+- **Sonuç (Veri Katliamı):** Müşteri Ekim ayında ürünü incelemiş, Kasım ayında tekrar bakmış, Aralık ayında satın almış olsun. `DISTINCT ON` bu meşru olayların hepsini duplicate zannedip siler ve geriye tek 1 satır bırakır! Zaman serisi analizi çöker.
+
+#### Senaryo 2: `DISTINCT ON (..., event_time)` Yazarsak:
+- `DISTINCT ON`, kolonlardaki **birebir eşitliğe (`=`)** bakar.
+- Subject'teki ister: *"Sunucu aynı işlemi 1 saniye aralıkla gönderebiliyor, bunları da silmelisiniz."*
+- Örnek satırlar:
+  - 1. Satır: `10:00:00`
+  - 2. Satır: `10:00:01` (1 sn fark - Duplicate!)
+- `DISTINCT ON` iki satırın `event_time` değerlerini (`10:00:00` $\neq$ `10:00:01`) farklı göreceği için bu iki satırı ayrı olay sayar ve **1 saniyelik duplicate'leri ASLA SİLEMEZ!**
+
+---
+
+### Özet Karşılaştırma:
+- `DISTINCT ON`, **sabit kolon eşitliğine göre küme bazında tekilleştirme** yapar (ex03 için biçilmiş kaftandır).
+- ex02'de ise **kronolojik olarak alt alta gelen ardışık iki satırın zaman farkını ($\Delta t = t_2 - t_1 \le 1\text{s}$)** hesaplamamız gerekir. SQL'de "bir önceki satırın değerine bakma" işlemi sadece **Window Fonksiyonları (`LAG`)** ile yapılabilir.
+
+---
+
+## Soru 17 (Ek Sorular 3 - 2)
+> **13. sorunun cevabında geçen yapıları görselleştirip oturtamıyorum. Bunlara basit tablo örnekleri verip detaylıca açıklayabilir misin? Terminalden/DBeaver'dan deneyebileceğim izole küçük örnekler verirsen çok iyi olur. Daha sonra da verilen çözüm script örneğini tekrar detaylıca açıkla.**
+
+### Cevap:
+
+Bu kavramları zihninizde netleştirmek için önce adım adım görsel şemalarla inceleyelim, ardından PostgreSQL terminalinde (`psql` veya DBeaver) kopyalayıp hemen çalıştırabileceğiniz 4 mini deneme yapalım.
+
+---
+
+### 1. Görsel Canlandırma: ex02 Mantığı Nasıl Çalışıyor?
+
+Elimizde `customers` tablosundan 4 satırlık ham bir veri olsun:
+
+```
+[ADIM 1: Ham Tablo]
+┌──────────┬─────────┬──────────────┬────────────┬───────┐
+│ satır_no │ user_id │  event_type  │ product_id │ zaman │
+├──────────┼─────────┼──────────────┼────────────┼───────┤
+│ 1        │ U1      │ cart         │ P100       │ 10:00 │
+│ 2        │ U1      │ cart         │ P100       │ 10:01 │ <-- 1 sn sonra (Çift tıklama / Duplicate)
+│ 3        │ U1      │ cart         │ P100       │ 10:40 │ <-- 39 sn sonra (Yeni geçerli sepet hareketi)
+│ 4        │ U2      │ view         │ P200       │ 10:00 │ <-- Farklı kullanıcı/ürün
+└──────────┴─────────┴──────────────┴────────────┴───────┘
+```
+
+`PARTITION BY user_id, event_type, product_id` dediğimizde SQL tabloyu odalara (gruplara) ayırır:
+
+```
+[ADIM 2: PARTITION BY ile Odalara Ayrılma & ORDER BY zaman ile Sıralanma]
+
+┌── [ODA 1: U1 + cart + P100] ────────────────────────────────────────────────────────┐
+│ • Satır 1: zaman = 10:00                                                            │
+│ • Satır 2: zaman = 10:01                                                            │
+│ • Satır 3: zaman = 10:40                                                            │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+┌── [ODA 2: U2 + view + P200] ────────────────────────────────────────────────────────┐
+│ • Satır 4: zaman = 10:00                                                            │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+`LAG(zaman)` odanın içindeki her satır için bir önceki satırın zamanını yanına yazar:
+
+```
+[ADIM 3: LAG(zaman) ile Bir Önceki Satırı Okuma (ranked_events CTE)]
+┌──────────┬─────────┬────────────┬───────┬─────────────────┬──────────────────────┐
+│ satır_no │ user_id │ product_id │ zaman │ prev_event_time │ Zaman Farkı (Saniye) │
+├──────────┼─────────┼────────────┼───────┼─────────────────┼──────────────────────┤
+│ 1        │ U1      │ P100       │ 10:00 │ NULL (İlk satır)│ - (Geçerli)          │
+│ 2        │ U1      │ P100       │ 10:01 │ 10:00           │ 1 saniye (DUPLICATE!)│
+│ 3        │ U1      │ P100       │ 10:40 │ 10:01           │ 39 saniye (Geçerli)  │
+│ 4        │ U2      │ P200       │ 10:00 │ NULL (İlk satır)│ - (Geçerli)          │
+└──────────┴─────────┴────────────┴───────┴─────────────────┴──────────────────────┘
+```
+
+`WHERE prev_event_time IS NULL OR fark > 1` filtresi uygulandığında:
+
+```
+[ADIM 4: Filtre Sonucu (Temiz Tablo)]
+┌──────────┬─────────┬────────────┬───────┬──────────────────────────────────────────┐
+│ satır_no │ user_id │ product_id │ zaman │ Durum                                    │
+├──────────┼─────────┼────────────┼───────┼──────────────────────────────────────────┤
+│ 1        │ U1      │ P100       │ 10:00 │ KORUNDU (İlk tıklama, prev IS NULL)      │
+│ 3        │ U1      │ P100       │ 10:40 │ KORUNDU (39 > 1 saniye)                  │
+│ 4        │ U2      │ P200       │ 10:00 │ KORUNDU (İlk tıklama, prev IS NULL)      │
+└──────────┴─────────┴────────────┴───────┴──────────────────────────────────────────┘
+(Satır 2 elendi ve silindi!)
+```
+
+---
+
+### 2. Terminalde / DBeaver'da Hemen Deneyebileceğiniz 4 Basit Örnek
+
+Bu sorguları herhangi bir tabloya ihtiyaç duymadan doğrudan `psql` veya DBeaver SQL Editörüne yapıştırıp çalıştırabilirsiniz:
+
+#### Deney 1: `WITH ... AS` (CTE) Ne İşe Yarar?
+```sql
+WITH test_tablosu AS (
+    SELECT 100 AS maas, 20 AS vergi_orani
+)
+SELECT maas, vergi_orani, (maas * vergi_orani / 100) AS kesinti
+FROM test_tablosu;
+```
+> **Gözlem:** `WITH test_tablosu AS (...)` ifadesi bellekte anlık sanal bir tablo kurdu ve altındaki `SELECT` bunu sanki gerçek bir tabloymuş gibi sorguladı.
+
+#### Deney 2: `LAG()` ve `ORDER BY` Nasıl Çalışır?
+```sql
+SELECT 
+    isim, 
+    puan, 
+    LAG(puan) OVER (ORDER BY puan) AS bir_onceki_puan
+FROM (
+    VALUES ('Ali', 50), ('Ayşe', 75), ('Fatma', 90)
+) AS sinif(isim, puan);
+```
+> **Gözlem:** `LAG(puan)` sıralı listede bir önceki satırın puanını yan sütuna getirdi. Ali ilk kişi olduğu için onun bir öncesi `NULL` oldu.
+
+#### Deney 3: `PARTITION BY` (Odalar Oluşturma) Ne Yapar?
+```sql
+SELECT 
+    sehir, 
+    magaza, 
+    ciro, 
+    LAG(ciro) OVER (PARTITION BY sehir ORDER BY ciro) AS sehirdeki_onceki_ciro
+FROM (
+    VALUES 
+        ('Istanbul', 'Kadikoy', 100), 
+        ('Istanbul', 'Besiktas', 250), 
+        ('Ankara', 'Cankaya', 150),
+        ('Ankara', 'Kizilay', 300)
+) AS t(sehir, magaza, ciro);
+```
+> **Gözlem:** `PARTITION BY sehir` sayesinde `LAG`, Ankara satırına geçtiğinde İstanbul'daki satırları unuttu ve Ankara'nın ilk satırına yeniden `NULL` yazdı!
+
+#### Deney 4: `EXTRACT(EPOCH FROM ...)` (Zaman Farkını Saniyeye Çevirme)
+```sql
+SELECT 
+    '2023-01-01 12:00:05'::timestamp - '2023-01-01 12:00:01'::timestamp AS interval_farki,
+    EXTRACT(EPOCH FROM ('2023-01-01 12:00:05'::timestamp - '2023-01-01 12:00:01'::timestamp)) AS saniye_sayisi;
+```
+> **Gözlem:** İki zaman farkı `00:00:04` (zaman aralığı) iken, `EXTRACT(EPOCH...)` bunu matematiksel olarak karşılaştırabileceğimiz saf bir `4` (sayı) değerine dönüştürdü.
+
+---
+
+### 3. `remove_duplicates.sql` Çözüm Scriptinin Satır Satır Analizi
+
+```sql
+-- 1. Temiz tablo oluşturuluyor (CTAS Yöntemi)
+CREATE TABLE customers_clean AS
+WITH ranked_events AS (
+    SELECT 
+        event_time,
+        event_type,
+        product_id,
+        price,
+        user_id,
+        user_session,
+        -- Aynı kullanıcının aynı ürüne ardışık tıklamalarının bir önceki zamanını buluyoruz:
+        LAG(event_time) OVER (
+            PARTITION BY user_id, user_session, event_type, product_id, price
+            ORDER BY event_time
+        ) AS prev_event_time
+    FROM customers
+)
+SELECT 
+    event_time,
+    event_type,
+    product_id,
+    price,
+    user_id,
+    user_session
+FROM ranked_events
+-- İlk tıklamaları (NULL) veya aradan 1 saniyeden fazla geçmiş temiz satırları seçiyoruz:
+WHERE prev_event_time IS NULL 
+   OR EXTRACT(EPOCH FROM (event_time - prev_event_time)) > 1;
+
+-- 2. Eski kirli tablo silinip yeni tablo onun yerine geçiriliyor (Atomic Swap)
+DROP TABLE customers;
+ALTER TABLE customers_clean RENAME TO customers;
+```
+
+---
+
+## Soru 18 (Ek Sorular 3 - 3)
+> **15. soruda ex03 için verilen `fusion.sql` örneğinde neden önce `items`'ı tekilleştirip sonra da bunu `customers` ile birleştirme yapmıyoruz? O zaman 2 sorgu ile mi yapmış oluruz? Buradaki örnekte `WITH ... AS` nasıl çalışıyor, geçici sanal bir `unique_items` tablosu mu oluşturuyor? Script bitince bu tablo da siliniyor mu? Benim dediğim gibi 2 adımda yapsak `unique_items` diye bir ara ürün mü oluşacak? Detaylı bir `fusion.sql` açıklaması yapar mısın?**
+
+### Cevap:
+
+Harika bir mimari soru! Aslında `fusion.sql` tam olarak **sizin söylediğiniz mantıkla (önce tekilleştir, sonra birleştir)** çalışır. Aradaki tek fark, bunu diske geçici tablo yazıp silmek yerine **bellekte tek seferlik bir boru hattı (in-memory pipeline)** olarak yapmasıdır.
+
+---
+
+### 1. `WITH ... AS` (CTE) Nasıl Çalışır? Sanal Tablo mu Yaratır?
+
+- **Evet, `WITH unique_items AS (...)` ifadesi sanal ve geçici bir sonuç kümesi (CTE - Common Table Expression) oluşturur.**
+- **Diskte Yer Tutmaz:** Veritabanında fiziksel bir dosya/tablo oluşturmaz; sadece o sorgunun çalıştığı milisaniyeler boyunca sunucunun belleğinde (RAM) yaşar.
+- **Otomatik Yok Olur:** Sorgu bittiği anda (yani sondaki noktalı virgül `;` çalıştığı an) bu sanal tablo hafızadan anında silinir. `DROP TABLE` yazmanıza gerek yoktur.
+
+---
+
+### 2. İki Yaklaşımın Karşılaştırması: 2 Adımlı Fiziksel Yol vs. CTE Yolu
+
+#### Sizin Bahsettiğiniz 2 Adımlı Yol (Fiziksel Ara Ürün Yaklaşımı):
+```sql
+-- 1. Sorgu: Ara ürünü diske kaydet
+CREATE TABLE unique_items AS 
+SELECT DISTINCT ON (product_id) * FROM items ORDER BY ...;
+
+-- 2. Sorgu: İki fiziksel tabloyu birleştir
+CREATE TABLE customers_fusion AS 
+SELECT * FROM customers c LEFT JOIN unique_items i ON c.product_id = i.product_id;
+
+-- 3. Sorgu: Çöpü temizle
+DROP TABLE unique_items;
+```
+
+#### `fusion.sql`'deki CTE Yolu (Modern Boru Hattı Yaklaşımı):
+```sql
+CREATE TABLE customers_fusion AS
+WITH unique_items AS (
+    SELECT DISTINCT ON (product_id) * FROM items ORDER BY ...
+)
+SELECT * FROM customers c LEFT JOIN unique_items i ON c.product_id = i.product_id;
+```
+
+#### Neden CTE (Tek Sorgu) Tercih Edilir?
+| Kriter | 2 Adımlı Fiziksel Yol | CTE (`WITH ... AS`) Yolu |
+|---|---|---|
+| **Disk I/O ve Performans** | Diske 109.000 satır yazar, WAL log tutar, sonra siler (Yavaş). | Her şeyi doğrudan RAM'de iletir, diske gereksiz yazma yapmaz (Hızlı). |
+| **Veritabanı Temizliği** | Script ortasında hata çıkarsa veritabanında `unique_items` adında **çöp tablo** kalır. | Asla arkasında çöp nesne bırakmaz. |
+| **Atomiklik (Transaction)** | 3 ayrı işlem olduğu için ara adımlarda kesintiye uğrayabilir. | Tek bir işlem olarak başlar ve biter (All-or-Nothing). |
+
+---
+
+### 3. `fusion.sql` Kodunun Detaylı Mimarisi
+
+Kodun tamamı ve her bloğunun görevi:
+
+```sql
+DROP TABLE IF EXISTS customers_fusion;
+
+CREATE TABLE customers_fusion AS
+-- ADIM A (CTE): Bellekte tekil ve en kaliteli ürün kataloğu hazırlanıyor
+WITH unique_items AS (
+    SELECT DISTINCT ON (product_id)
+        product_id,
+        category_id,
+        category_code,
+        brand
+    FROM items
+    ORDER BY 
+        product_id,
+        (category_code IS NOT NULL AND category_code <> '') DESC,
+        (brand IS NOT NULL AND brand <> '') DESC,
+        category_id DESC NULLS LAST
+)
+-- ADIM B: customers tablosu bellekteki unique_items ile zenginleştiriliyor
+SELECT 
+    c.event_time,
+    c.event_type,
+    c.product_id,
+    c.price,
+    c.user_id,
+    c.user_session,
+    i.category_id,
+    i.category_code,
+    i.brand
+FROM customers c
+LEFT JOIN unique_items i ON c.product_id = i.product_id;
+
+-- ADIM C: Atomic Table Swap (Yeni zengin tablo ana tablo haline getiriliyor)
+DROP TABLE customers;
+ALTER TABLE customers_fusion RENAME TO customers;
+```
+
+#### Kritik Tasarım Kararları:
+1. **`ORDER BY ... DESC` Mantığı:** PostgreSQL'de `category_code IS NOT NULL AND category_code <> ''` ifadesi dolu satırlar için `TRUE`, boş satırlar için `FALSE` üretir. `DESC` sıralamada `TRUE` en tepeye çıkar. Böylece `DISTINCT ON`, aynı ürünün boş satırlarını değil **en dolu satırını** seçer.
+2. **`LEFT JOIN` Güvencesi:** Katalogda henüz hiç tanımlanmamış bir ürün satılmışsa bile `LEFT JOIN` o müşteri hareketini silmez, marka/kategoriye `NULL` basarak satışı korur.
+3. **`unique_items`'ın Yaşamı:** Bu SQL komutu çalışıp `customers_fusion` tablosu oluştuktan sonra `unique_items` CTE'si kendiliğinden yok olur; veritabanında hiçbir kalıntı bırakmaz.
+

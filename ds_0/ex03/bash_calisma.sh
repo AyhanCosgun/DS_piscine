@@ -117,10 +117,23 @@
 # VALUES (:'isim');
 # SQL
 
-isim="O'Reilly2"
+# isim="O'Reilly2"
 
-psql -h localhost -U postgres -p 5432  -d postgres\
-<<SQL
-INSERT INTO author (name)
-VALUES ($isim);
-SQL
+# psql -h localhost -U postgres -p 5432  -d postgres\
+# <<SQL
+# INSERT INTO author (name)
+# VALUES ($isim);
+# SQL
+
+      ###### nullglob kullanımı ######
+shopt -s nullglob
+for file in /bos_klasor/*.csv; do
+    echo "$file"
+done
+
+files=(/bos_klasor/*.csv)
+
+echo "Bulunan dosya sayisi: ${#files[@]}"
+echo "Bulunan dosyalar: ${files[@]}"
+
+shopt -u nullglob

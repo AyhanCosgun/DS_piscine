@@ -1287,3 +1287,164 @@ trap cleanup EXIT INT TERM
 ```
 
 Bu sayede Ctrl+C gibi kesmelerde de temizlik yapabilirsin.
+
+---
+
+### 13) `shopt`, `-s`, `-u` ve `nullglob` Nedir?
+
+`shopt` ("Shell Options"), Bash kabugunun yerlesik ozelliklerini ve dosya arama/eslestirme (globbing) davranislarini yoneten dahili bir komuttur.
+
+#### Parametrelerin Anlami:
+- **`-s` (Set):** Belirtilen kabuk secenegini **aktif eder (acar)**.
+- **`-u` (Unset):** Belirtilen kabuk secenegini **deaktif eder (kapatir)**.
+- **`shopt <secenek>`:** Secenegin o an acik (`on`) mi kapali (`off`) mi oldugunu gosterir.
+- **`shopt -p`:** Tum acik/kapali kabuk ayarlarini listeler.
+
+---
+
+#### `nullglob` Nedir ve Neden Kullanilir?
+
+Varsayilan Bash davranisinda, bir dosya deseni (ornek: `*.csv`) hicbir dosya ile eslesmezse, Bash bu deseni **oldugu gibi duz metin** olarak birakir.
+
+##### 1. Varsayilan Durum (`nullglob` kapali):
+Klasorde hic CSV yoksa:
+```bash
+for file in /bos_klasor/*.csv; do
+    echo "$file"
+done
+```
+**Cikti:** `/bos_klasor/*.csv` (Boyle bir dosya olmamasina ragmen dongu 1 kez doner ve duz metin basar!).
+
+##### 2. `nullglob` Acikken (`shopt -s nullglob`):
+Eger eslesen hicbir dosya yoksa, Bash o deseni **tamamen bosluga (hicbir seye / null)** donusturur:
+```bash
+shopt -s nullglob
+files=(/bos_klasor/*.csv)
+shopt -u nullglob
+
+echo "Bulunan dosya sayisi: ${#files[@]}"  # 0 basar!
+```
+
+> [!TIP]
+> **Neden `shopt -u nullglob` ile kapatiriz?**
+> Scriptin sadece dosya arama kisminda bu davranisi kullanip, sonrasinda Bash'i standart haline geri dondurmek (yan etkileri onlemek) en iyi muhendislik pratigidir.
+
+---
+
+#### Diger Cok Kullanisli `shopt` Secenekleri
+
+| Secenek | Komut | Ne Ise Yarar? | Ornek |
+| :--- | :--- | :--- | :--- |
+| **`globstar`** | `shopt -s globstar` | `**` ile tum alt klasorleri ozyinelemeli (recursive) arar. | `ls **/*.sql` (Tum alt klasorlerdeki SQL'leri bulur) |
+| **`nocaseglob`** | `shopt -s nocaseglob` | Dosya ararken buyuk/kucuk harf duyarsizligini acar. | `*.csv` hem `a.csv` hem `B.CSV` ile eslesir |
+| **`dotglob`** | `shopt -s dotglob` | `*` deseninin gizli dosyalari (`.gitignore`, `.env`) da bulmasini saglar. | `rm *` (Gizli dosyalar dahil siler) |
+| **`extglob`** | `shopt -s extglob` | Gelismis regex benzeri desen eslestirmeyi acar. | `rm !(*.csv)` (CSV haric her seyi sil) |
+| **`failglob`** | `shopt -s failglob` | Eslesmeyen desen olursa komutu calistirmayip hata firlatir. | `ls *.xyz` -> `no match found` hatasi verir |
+
+---
+
+### 14) Bash'te Array (Dizi) Yapisi, Gezinme ve Ozel Isaretler
+
+Bash'te diziler (arrays), birden fazla degeri tek bir degiskende saklamanin en guvenli yoludur.
+
+#### 1. Dizi Tanimlama Yontemleri
+
+```bash
+# 1. Dogrudan elemanlarla tanimlama
+meyveler=("elma" "armut" "muz")
+
+# 2. Bos dizi olusturma
+dosyalar=()
+
+# 3. Dosyalari diziye toplama (nullglob ile)
+shopt -s nullglob
+csv_dosyalari=("$CUSTOMER_DIR"/*.csv)
+shopt -u nullglob
+
+# 4. Var olan diziye yeni eleman ekleme (+=)
+meyveler+=("cilek" "karpuz")
+
+# 5. Belirli bir indekse eleman atama
+meyveler[10]="portakal"
+```
+
+---
+
+#### 2. Elemanlara Erisme ve Ozel Isaretlerin Anlami
+
+Bash'te dizilerle calisirken kullanilan sembollerin gorevleri:
+
+| Isaret / Kalip | Anlami / Gorevi | Ornek | Aciklama |
+| :--- | :--- | :--- | :--- |
+| **`${dizi[i]}`** | Belirli bir indisteki eleman | `${meyveler[0]}` | Ilk elemani (`elma`) getirir. |
+| **`${dizi[-1]}`** | Dizinin son elemani | `${meyveler[-1]}` | En sondaki elemani getirir. |
+| **`${dizi[@]}`** | Dizideki **tum elemanlar** (Ayrilmis) | `"${meyveler[@]}"` | Her elemani tirnak icinde ayri kelime olarak korur (En guvenli yol). |
+| **`${dizi[*]}`** | Dizideki tum elemanlar (Birlestirilmis) | `"${meyveler[*]}"` | Tum elemanlari tek bir metin dizesi (`"elma armut muz"`) yapar. |
+| **`#` (Sayi/Uzunluk)** | **Eleman Sayisi** veya **Karakter Uzunlugu** | `${#meyveler[@]}` | Dizinin **toplam eleman sayisini** verir (Orn: `3`). |
+| **`${#degisken}`** | Metin Karakter Sayisi | `${#meyveler[0]}` | `elma` kelimesinin uzunlugunu (`4`) verir. |
+| **`$#`** | Girdi Parametre Sayisi | `$#` | Script'e gelen arguman sayisini verir. |
+| **`!` (Indeksler)** | Dizinin **indeks numaralarini** listeler | `${!meyveler[@]}` | `0 1 2` seklinde mevcut indisleri doner. |
+
+---
+
+#### 3. Dizi Icinde Gezinme (Donguler)
+
+##### Yontem A: Elemanlar Uzerinde Donme (En Yaygin)
+```bash
+for meyve in "${meyveler[@]}"; do
+    echo "Meyve: $meyve"
+done
+```
+
+##### Yontem B: Indeksler Uzerinde Donme (`!` ile)
+Elemanin kacinci sirada oldugunu bilmek istediginizde:
+```bash
+for i in "${!meyveler[@]}"; do
+    echo "Sira $i -> ${meyveler[$i]}"
+done
+```
+
+##### Yontem C: C-Tipi Klasik Sayacli Dongu
+```bash
+for ((i=0; i<${#meyveler[@]}; i++)); do
+    echo "Indeks $i: ${meyveler[$i]}"
+done
+```
+
+---
+
+#### 4. Dizi Dilimleme (Slicing) ve Eleman Silme
+
+```bash
+sayilar=(0 1 2 3 4 5 6 7 8 9)
+
+# 2. indeksten basla, 3 eleman al (2 3 4):
+echo "${sayilar[@]:2:3}"
+
+# 1. indisteki elemani sil (Dizinin boyutu kuculur ama indeksler kaymaz):
+unset sayilar[1]
+```
+
+---
+
+#### 5. Iliskili Diziler (Associative Arrays / Key-Value Sozluk)
+
+Python'daki `dict` yapisi gibi anahtar-deger cifti saklamak icin `declare -A` kullanilir:
+
+```bash
+# Iliskili dizi tanimla:
+declare -A db_config
+
+db_config["host"]="localhost"
+db_config["port"]="5432"
+db_config["user"]="acosgun"
+
+# Degere erisme:
+echo "Baglanti adresi: ${db_config["host"]}:${db_config["port"]}"
+
+# Tum anahtarlari (keys) listeleme (! ile):
+for key in "${!db_config[@]}"; do
+    echo "$key = ${db_config[$key]}"
+done
+```
+
