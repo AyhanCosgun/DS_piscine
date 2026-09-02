@@ -1,0 +1,44 @@
+CREATE TABLE events (
+    user_id VARCHAR(10),
+    event_type VARCHAR(20),
+    product_id VARCHAR(10),
+    zaman TIMESTAMPTZ
+);
+
+INSERT INTO events (satir_no, user_id, event_type, product_id, zaman)
+VALUES
+    ('U1', 'cart', 'P100', '10:00'),
+    ('U1', 'cart', 'P100', '10:01'),
+    ('U1', 'cart', 'P100', '10:40'),
+    ('U2', 'view', 'P200', '10:00');
+
+
+
+create table groups as
+SELECT *, LAG(zaman)
+over (partition by user_id order by zaman)
+as prev_zaman from events;
+
+
+
+CREATE TABLE clean AS
+SELECT *
+FROM groups
+WHERE prev_zaman IS NULL
+   OR zaman - prev_zaman > INTERVAL '1 second';
+
+
+drop table events; alter table son rename to events;
+
+
+CREATE TABLE sepet (
+    urun TEXT
+);
+
+INSERT INTO sepet (urun)
+VALUES
+    ('Elma'),
+    ('Armut'),
+    ('Muz');
+
+SELECT string_agg(urun, ' - ') FROM sepet;
