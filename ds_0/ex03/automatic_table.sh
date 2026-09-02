@@ -33,6 +33,7 @@ echo "Connecting to database..." >&2
 	for csv_file in "${csv_files[@]}"; do
 		table_name=$(basename "$csv_file" .csv)
 		file_name=$(basename "$csv_file")
+		file_path="$csv_file"
 
 		echo "creating SQL code for $table_name" >&2
 
@@ -51,8 +52,8 @@ CREATE TABLE $table_name (
 	user_session UUID
 );
 
-\echo 'Loading data in $file_name'
-\copy $table_name FROM $csv_file WITH (FORMAT csv, HEADER true)
+\echo 'Loading data in $file_name, csv file = $file_path'
+\copy $table_name FROM $file_path WITH (FORMAT csv, HEADER true)
 \echo 'Data loaded successfully into $table_name'
 \echo '================================================================================'
 SQL

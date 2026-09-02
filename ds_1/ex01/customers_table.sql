@@ -1,5 +1,5 @@
 \echo '================================================================================'
-\echo 'Processing: customers_table.sql (Dynamic Metadata Approach)'
+\echo 'Processing: customers_table.sql'
 \echo '================================================================================'
 
 \set ON_ERROR_STOP on
@@ -13,7 +13,7 @@ DECLARE
     v_sql TEXT;
     v_table_count INT;
 BEGIN
-    -- 1. Kriterlere uyan kaç tablo olduğunu say ve dinamik sorguyu oluştur
+
     SELECT count(*), 
            'CREATE TABLE customers AS ' || 
            string_agg('SELECT * FROM ' || quote_ident(tablename), ' UNION ALL ' ORDER BY tablename)
@@ -22,18 +22,57 @@ BEGIN
     WHERE schemaname = 'public'
       AND tablename ~ '^data_202[0-9]_[a-z]{3}$';
 
-    -- 2. Tablo varlık kontrolü (Tablo yoksa hata fırlat ki ON_ERROR_STOP devreye girsin)
     IF v_table_count = 0 OR v_sql IS NULL THEN
-        RAISE EXCEPTION 'HATA: "data_202*_***" desenine uyan hiçbir tablo bulunamadı!';
+        RAISE EXCEPTION 'ERROR: could not found any matching tables with the specified pattern "data_202*_***"!';
     END IF;
 
-    RAISE NOTICE 'Toplam % adet tablo bulundu. Birleştirme işlemi başlatılıyor...', v_table_count;
+    RAISE NOTICE '% tables found. Starting the merge process...', v_table_count;
 
-    -- 3. Dinamik sorguyu tek seferde yürüt
     EXECUTE v_sql;
 
-    RAISE NOTICE 'customers tablosu başarıyla oluşturuldu.';
+    RAISE NOTICE '% tables merged into the "customers" table successfully.', v_table_count;
 END $$;
 
+
+
 \echo '================================================================================'
+\echo 'Verifying expected and observed record counts...'
+\echo '================================================================================'
+
+DO $$
+DECLARE
+  v_expected_total BIGINT;
+  v_observed_total BIGINT;
+BEGIN
+  RAISE NOTICE 'Calculating expected total record count from source tables...';
+
+  SELECT
+    (SELECT count(*) FROM data_2022_oct) +
+    (SELECT count(*) FROM data_2022_nov) +
+    (SELECT count(*) FROM data_2022_dec) +
+    (SELECT count(*) FROM data_2023_jan)
+  INTO v_expected_total;
+
+  RAISE NOTICE 'Calculating observed total record count in the "customers" table...';
+
+  SELECT count(*)
+  INTO v_observed_total 
+  FROM customers;
+
+  RAISE NOTICE 'Expected total: %, Observed total: %',
+    v_expected_total,
+    v_observed_total;
+
+  IF v_expected_total <> v_observed_total THEN
+    RAISE EXCEPTION
+      'Record count mismatch! Expected: %, Observed: % \n Rolling back the transaction, deleting the "customers" table, and aborting the process.',
+      v_expected_total,
+      v_observed_total;
+  END IF;
+
+  RAISE NOTICE 'Record count verification successful. The "customers" table contains the expected number of records.';
+END $$;
+
+\echo 'Transaction is being committed...'
+
 COMMIT;
