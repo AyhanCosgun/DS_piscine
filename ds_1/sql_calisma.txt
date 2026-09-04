@@ -1,16 +1,28 @@
 CREATE TABLE events (
-    user_id VARCHAR(10),
-    event_type VARCHAR(20),
-    product_id VARCHAR(10),
+    user_id BIGINT,
+    event_type VARCHAR(32),
+    product_id INTEGER,
     zaman TIMESTAMPTZ
 );
 
-INSERT INTO events (satir_no, user_id, event_type, product_id, zaman)
+INSERT INTO events (user_id, event_type, product_id, zaman)
 VALUES
-    ('U1', 'cart', 'P100', '10:00'),
-    ('U1', 'cart', 'P100', '10:01'),
-    ('U1', 'cart', 'P100', '10:40'),
-    ('U2', 'view', 'P200', '10:00');
+    ('11', 'cart', '100', '10:00'),
+    ('11', 'cart', '100', '10:01'),
+    ('11', 'cart', '100', '10:40'),
+    ('12', 'view', '200', '10:00'),
+    ('12', 'view', '300', '10:20')
+    ;
+
+
+DROP TABLE IF EXISTS items;
+
+CREATE TABLE items (
+    product_id INTEGER,
+    category_id BIGINT,
+    category_code VARCHAR(255),
+    brand TEXT
+);
 
 
 
