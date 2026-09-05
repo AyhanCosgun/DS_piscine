@@ -1,0 +1,715 @@
+# 42 Data Science Piscine — DS_2: Data Viz & Customer Clustering
+## Kapsamlı Başlangıç Rehberi, Yol Haritası ve Soru-Cevap Kılavuzu (`ds2_tutorial.md`)
+
+Bu rehber, **42 Data Science Piscine** modüllerinden **DS_2 (Data Viz)** projesini sıfırdan başarıyla tamamlamanız, veri analitiği ve kümeleme (clustering) dünyasının mantığını derinlemesine kavramanız ve peer-evaluation (savunma) aşamasında tam puan almanız için hazırlanmıştır.
+
+---
+
+## İçindekiler
+1. [42 Data Science Piscine Büyük Resmi (ds_0'dan ds_4'e)]( #1-42-data-science-piscine-büyük-resmi-ds_0dan-ds_4e)
+2. [Soru 1: Hangi Dili ve Yöntemi Kullanmalıyım? PostgreSQL / DBeaver Yeterli mi?](#2-soru-1-hangi-dili-ve-yöntemi-kullanmalıyım-postgresql--dbeaver-yeterli-mi)
+3. [Soru 2: "Techno R, Excel, Power BI, Jupyter Notebook..." Ne Demek? Hangi Tool Seçilmeli?](#3-soru-2-techno-r-excel-power-bi-jupyter-notebook-ne-demek-hangi-tool-seçilmeli)
+4. [Soru 3: Her Bir Egzersizin Detaylı Analizi ve Yapılışı (ex00 - ex05)](#4-soru-3-her-bir-egzersizin-detaylı-analizi-ve-yapılışı-ex00---ex05)
+5. [Soru 4: Ex02'den Sonraki Grafiklerin Anlamı ve PDF'deki "?" / "??" İşaretlerinin Sırrı](#5-soru-4-ex02den-sonraki-grafiklerin-anlamı-ve-pdfdeki---işaretlerinin-sırrı)
+6. [Soru 5: Clustering (Kümeleme) Nedir, Ne İşe Yarar? Elbow Method Nasıl Çalışır?](#6-soru-5-clustering-kümeleme-nedir-ne-işe-yarar-elbow-method-nasıl-çalışır)
+7. [Soru 6: Kümeleme Algoritmaları Nelerdir, Kaç Tane Vardır ve Nerelerde Kullanılırlar?](#7-soru-6-kümeleme-algoritmaları-nelerdir-kaç-tane-vardır-ve-nerelerde-kullanılırlar)
+8. [Soru 7: Ex05 Grafiklerinin Eksenleri Ne Anlama Gelir? Centroid Nedir?](#8-soru-7-ex05-grafiklerinin-eksenleri-ne-anlama-gelir-centroid-nedir)
+9. [Adım Adım DS_2 Yol Haritası ve Kod İskeletleri](#9-adım-adım-ds_2-yol-haritası-ve-kod-iskeletleri)
+10. [Peer-Evaluation (Savunma) Taktikleri](#10-peer-evaluation-savunma-taktikleri)
+
+---
+
+## 1. 42 Data Science Piscine Büyük Resmi (ds_0'dan ds_4'e)
+
+42 Piscine müfredatı rastgele ödevlerden oluşmaz; uçtan uca gerçek bir veri bilimi yaşam döngüsünü (**Data Science Lifecycle**) simüle eder:
+
+```
+┌────────────────┐    ┌────────────────┐    ┌────────────────┐    ┌────────────────┐    ┌────────────────┐
+│      DS_0      │───►│      DS_1      │───►│      DS_2      │───►│      DS_3      │───►│      DS_4      │
+│  Data Ingest   │    │ Data Warehouse │    │    Data Viz    │    │ Exploratory DA │    │ Predictive ML  │
+│  (PostgreSQL)  │    │     (ETL)      │    │  (Clustering)  │    │ (StarWars EDA) │    │(Classification)│
+└────────────────┘    └────────────────┘    └────────────────┘    └────────────────┘    └────────────────┘
+```
+
+1. **DS_0 (Data Ingestion & Storage):** Ham CSV verilerini PostgreSQL ortamına aktarmayı, tablolar kurmayı öğrendiniz (`automatic_table.sh`, `table.sql`).
+2. **DS_1 (Data Warehouse & ETL):** Parçalanmış aylık tabloları tek bir merkezde birleştirdiniz (`UNION ALL`), duplicate satırları temizlediniz ve ürün tablolarıyla `JOIN` yaptınız. Temiz bir **Veri Ambarı (DWH)** inşa ettiniz.
+3. **DS_2 (Data Visualization & Customer Segmentation - ŞU ANKİ MODÜL):** Veri ambarındaki bu temiz veriyi artık iş zekası (BI) ve analitik için kullanacaksınız. Temel grafiklerle satışları keşfedecek, ardından **Makine Öğrenimi (Clustering)** ile müşterileri karlı segmentlere ayıracaksınız.
+4. **DS_3 (The Present / Preprocessing & EDA):** Star Wars Jedi/Sith şövalyeleri veri setinde dağılımları (Histogram), korelasyonları, aykırı değerleri, standardizasyon ve normalizasyon tekniklerini inceleyeceksiniz.
+5. **DS_4 (The Future / Predictive Modeling):** DS_3'te temizlenen şövalye verileri üzerinde Karar Ağaçları (Decision Tree / Random Forest), KNN ve Ensembling (Oylama Sınıflandırıcısı) ile geleceği tahmin eden (Supervised ML) modeller kuracaksınız.
+
+> [!IMPORTANT]
+> **DS_2'deki Kritik Kural:**  
+> Subject'in 3. sayfasındaki resmi uyarı:  
+> *"All the graphs are done without the February data, you have to redo them all with the new data"*  
+> PDF'deki örnek grafikler Şubat ayı verisi eklenmeden önceki eski görüntülerdir. Siz tüm grafikleri ve kümeleme analizini **Şubat 2023 (`data_2023_jan` / `data_2023_feb`) verilerini de içeren eksiksiz DWH veritabanınızla** sıfırdan oluşturacaksınız!
+
+---
+
+## 2. Soru 1: Hangi Dili ve Yöntemi Kullanmalıyım? PostgreSQL / DBeaver Yeterli mi?
+
+> **Soru:**  
+> *"Proje için hangi dili kullanmalıyım, bana bırakılmış ama ?? Bu tabloları postgresql ile ya da dbeaver ile yapamıyor muyuz ? Yoksa python modülleri mi kullanmalıyız ? En ideal yöntem hangisi ?"*
+
+### Cevap:
+**En ideal ve sektör standardı yöntem: HİBRİT YÖNTEMDİR (PostgreSQL + Python).**
+
+#### Neden Sadece PostgreSQL veya DBeaver ile Yapılamaz?
+- **DBeaver bir çizim veya programlama aracı değildir:** DBeaver sadece veritabanına bağlanıp SQL sorgusu çalıştırmanızı sağlayan bir grafik arayüzüdür (GUI). Grafikler çizip bunları bir dosyaya script olarak kaydedemezsiniz.
+- **PostgreSQL grafik çizemez ve K-Means yapamaz:** PostgreSQL bir ilişkisel veritabanı motorudur. Verileri filtreler, gruplar (`GROUP BY`), toplar (`SUM`, `COUNT`), ortalama alır (`AVG`). Ancak ekranda bir pasta grafik (`pie chart`), kutu-bıyık grafiği (`box plot`) veya dağılım grafiği (`scatter plot`) çizemez; K-Means algoritmasını yerleşik olarak barındırmaz.
+- **Subject'in Teslim İsteri:** Subject sizden her klasörde çalıştırılabilir birer kod dosyası istemektedir (`pie.*`, `chart.*`, `mustache.*`, `Building.*`, `elbow.*`, `Clustering.*`). Değerlendiren kişi terminalde bu scripti çalıştırdığında grafiklerin ekrana gelmesini bekler.
+
+#### En İdeal İş Bölümü (The Golden Workflow):
+1. **Veritabanı Katmanı (PostgreSQL):** Ağır veri hesaplamalarını (filtreleme, aylık toplama, müşteri bazında RFM metrikleri çıkarma) SQL'e yaptırın. Çünkü PostgreSQL 16+ milyon satır üzerinde C hızında gruplama yapar.
+2. **Uygulama ve Görselleştirme Katmanı (Python):**
+   - `psycopg2` / `SQLAlchemy`: PostgreSQL'den hesaplanmış veriyi çeker.
+   - `pandas`: Tabloları DataFrame formatında yönetir.
+   - `matplotlib` & `seaborn`: Subject'te istenen tüm grafikleri piksellerine kadar çizer.
+   - `scikit-learn`: Ex04 ve Ex05'teki **K-Means** ve **Elbow Method** hesaplamalarını yapar.
+
+---
+
+## 3. Soru 2: "Techno R, Excel, Power BI, Jupyter Notebook..." Ne Demek? Hangi Tool Seçilmeli?
+
+> **Soru:**  
+> *" 'They often use tools such as techno R, Excel, Power BI, Jupyter Notebook . . . It is up to you to find the tools that suit you. You are free to use any language of your choice for this module.' ne demek tam olarak ? dili seçtikten sonra bir de tool mu seçeceğiz ? Eğer seçeceksek en uygunu hangisi bu sektörde çalışmayı düşünen bir profesyonel için ?"*
+
+### Cevap:
+
+#### 1. Bu Cümlenin Anlamı Nedir?
+Subject yazarları burada gerçek dünyada bir Veri Analistinin (Data Analyst) kullandığı ekosistemi tasvir etmek istemiş; ancak **Programlama Dili** (`Python`, `R`), **İş Zekası / BI Aracı** (`Power BI`, `Tableau`), **Elektronik Tablo** (`Excel`) ve **Geliştirme Ortamı** (`Jupyter Notebook`) gibi kavramları günlük dilde aynı torbaya ("techno / tools") koymuştur.
+
+Burada iki ayrı seçim yapmıyorsunuz; bir **teknoloji yığını (tech-stack)** seçiyorsunuz.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        SEKTÖR TEKNOLOJİ YIĞINI                         │
+├───────────────────┬───────────────────┬────────────────────────────────┤
+│ Katman            │ Sektör Standardı  │ Bu Projedeki Görevi            │
+├───────────────────┼───────────────────┼────────────────────────────────┤
+│ Veritabanı        │ PostgreSQL        │ Veri depolama, sorgulama       │
+│ Programlama Dili  │ Python            │ Tüm mantık, otomasyon          │
+│ Analiz Kütüphanesi│ Pandas, NumPy     │ Veri işleme, RFM hesaplama     │
+│ Görselleştirme    │ Matplotlib,Seaborn│ Grafiklerin üretimi            │
+│ Makine Öğrenimi   │ Scikit-Learn      │ K-Means, Elbow, StandardScaler │
+│ Geliştirme Ortamı │ VS Code / Jupyter │ Kod geliştirme ve test         │
+└───────────────────┴───────────────────┴────────────────────────────────┘
+```
+
+#### 2. Neden Power BI veya Excel Değil?
+- **42 Cluster Ortamı:** 42 kampüs bilgisayarlarında Power BI çalışmaz (Windows bağımlıdır).
+- **Otomasyon ve Değerlendirme:** Evaluator değerlendirme yaparken `python3 pie.py` veya `python3 chart.py` yazıp çıktıyı anında görmek ister. Excel veya Power BI dosyasını açıp değerlendirmek 42 standartlarına uymaz.
+
+#### 3. Sektör Profesyoneli İçin En Uygun Tercih:
+Bugün küresel ölçekte veri bilimi, veri mühendisliği ve yapay zeka alanında çalışan profesyonellerin **%85'inden fazlası Python ekosistemini** kullanır. Python öğrenmek sizi doğrudan iş dünyasına hazırlar.
+
+---
+
+## 4. Soru 3: Her Bir Egzersizin Detaylı Analizi ve Yapılışı (ex00 - ex05)
+
+> **Soru:**  
+> *"Her bir exercise için ne istendiğini ve nasıl yapılacağını, hangi tool yapılacağını detaylıca açıkla. Bu konulara yeni başlayan birisi anlayabilmeli."*
+
+### Cevap:
+
+### Exercise 00: American Apple Pie (`pie.*`)
+- **İstenen:** Sitedeki kullanıcıların ne yaptığını (`event_type`) gösteren bir **Pasta Grafiği (Pie Chart)** oluşturmak ve DS_1'deki Veri Ambarına bağlanmak.
+- **Mantık:** Veritabanındaki `customers` tablosunda `event_type` kolonunu gruplayıp her bir olayın sayısını bulacağız:
+  - `view` (ürün inceleme - genelde %70-80 ile en büyük dilim)
+  - `cart` (sepete ekleme)
+  - `remove_from_cart` (sepetten çıkarma)
+  - `purchase` (satın alma)
+- **Nasıl Yapılır?**
+  1. SQL ile `SELECT event_type, COUNT(*) FROM customers GROUP BY event_type;` sorgusu çalıştırılır.
+  2. Python'da `matplotlib.pyplot.pie()` kullanılarak dilimler ve yüzde değerleri (`autopct='%1.1f%%'`) çizdirilir.
+
+---
+
+### Exercise 01: Initial Data Exploration (`chart.*`)
+- **İstenen:** 
+  1. Yalnızca `event_type = 'purchase'` olan verileri filtrelemek.
+  2. Fiyatların "Altairian Dollars" (A) cinsinden olduğunu bilmek.
+  3. Ekim 2022 başından Şubat 2023 sonuna kadar **3 adet zaman serisi grafiği** oluşturmak.
+- **3 Grafik Nelerdir?**
+  - **Grafik 1 (Number of customers):** Zaman içinde (günlük veya aylık) alışveriş yapan **tekil müşteri sayısı** (`COUNT(DISTINCT user_id)` / `nunique()`).
+  - **Grafik 2 (Total sales in million of A):** Aylık toplam ciro (`SUM(price)`). Milyon cinsinden ifade edilir.
+  - **Grafik 3 (Average spend/customer in A):** Müşteri başına ortalama harcama (`Total Sales / Distinct Customers`).
+- **Nasıl Yapılır?**
+  SQL veya Pandas ile `event_time` kolonu aylara/günlere göre gruplanır (`DATE_TRUNC('month', event_time)` veya `df.resample('M')`), ardından `matplotlib.pyplot.plot()` veya `sns.lineplot()` ile çizdirilir.
+
+---
+
+### Exercise 02: My Beautiful Mustache (`mustache.*`)
+- **İstenen:**
+  1. Satın alınan ürün fiyatlarının (`price`) istatistiksel özetini yazdırmak:
+     - `count`, `mean` (ortalama), `std` (standart sapma), `min`, `max`, `first quartile (25%)`, `median (50%)`, `third quartile (75%)`.
+  2. Fiyatların dağılımını gösteren bir **Kutu-Bıyık Grafiği (Box Plot)** çizmek.
+  3. Kullanıcı başına ortalama sepet tutarı (**average basket price per user**) için ikinci bir box plot çizmek.
+- **Nasıl Yapılır?**
+  - İstatistikler için Pandas `df['price'].describe()` fonksiyonu birebirdir.
+  - Box plot için `seaborn.boxplot(x=df['price'])` kullanılır.
+  - İkinci grafik için önce her kullanıcının oturum/sepet başına ortalaması hesaplanır (`groupby(['user_id', 'user_session'])['price'].sum()`), sonra onun box plot'u çizilir.
+
+---
+
+### Exercise 03: Highest Building (`Building.*`)
+- **İstenen:**
+  1. Müşterilerin sipariş sıklığına göre sipariş adedini gösteren bir sütun grafiği (**bar chart / histogram**).
+  2. Müşterilerin sitede harcadığı toplam paraya (Monetary value) göre dağılımını gösteren ikinci bir sütun grafiği.
+- **Nasıl Yapılır?**
+  - Her müşteri için toplam sipariş sayısı (`Frequency`) ve toplam harcama (`Monetary`) hesaplanır.
+  - Dağılımı göstermek için `matplotlib.pyplot.hist()` veya `sns.histplot()` ile aralıklara (bins) bölünerek çizdirilir.
+
+---
+
+### Exercise 04: Elbow (`elbow.*`)
+- **İstenen:** Müşterileri e-posta ile hedeflemek için gruplamak istiyoruz. Optimum küme sayısını ($k$) belirlemek için **Elbow Method (Dirsek Yöntemi)** grafiği oluşturmak ve seçilen $k$ sayısının nedenini savunabilmek.
+- **Nasıl Yapılır?**
+  - Müşteri bazında RFM (Recency, Frequency, Monetary) özet tablosu oluşturulur.
+  - Sayısal değerler `StandardScaler` ile ölçeklendirilir.
+  - $k=1$'den $k=10$'a kadar bir döngüde `KMeans(n_clusters=k)` eğitilir ve `model.inertia_` (hata kareleri toplamı) listeye eklenir.
+  - $k$ değerlerine karşılık `inertia` çizgisi çizilir. Bükülmenin (dirseğin) olduğu nokta tespit edilir.
+
+---
+
+### Exercise 05: Clustering (`Clustering.*`)
+- **İstenen:**
+  1. Müşterileri en az **4 gruba** ayırmak (Örn: New customer, Inactive customer, Loyal customer, Platinum/Gold VIP...).
+  2. Bir **Clustering Algoritması** (Örn: K-Means) kullanmak.
+  3. Grupların en az **2 farklı grafiksel temsilini** oluşturmak.
+- **Nasıl Yapılır?**
+  - Ex04'te belirlediğiniz optimum $k$ (örneğin $k=4$ veya $k=5$) ile K-Means modeli fit edilir.
+  - Her müşteriye bir küme etiketi atanır (`cluster_0`, `cluster_1`, ...).
+  - Kümelerin ortalama Recency, Frequency ve Monetary değerlerine bakılarak anlamlı iş isimleri verilir.
+  - En az iki grafik üretilir:
+    1. Segmentlerdeki müşteri sayılarını gösteren Bar Chart.
+    2. Kümeleri ve merkezlerini (**Centroids**) gösteren 2D/3D Scatter Plot.
+
+---
+
+## 5. Soru 4: Ex02'den Sonraki Grafiklerin Anlamı ve PDF'deki "?" / "??" İşaretlerinin Sırrı
+
+> **Soru:**  
+> *"Özellikle ex02 den sonra grafiklerin ne grafiği olduğu da anlaşılmıyor bazen. Grafikleri de detaylıca açıkla. Ayrıca bazılarında bazı yerlerde '?' var, bunları da açıkla."*
+
+### Cevap:
+
+### 1. Ex02: "Mustache" Neden Kutu Grafiğidir?
+Fransızcada Box Plot grafiğine **"Boîte à moustaches"** (bıyıklı kutu) denir; Ecole 42 Fransız menşeili olduğu için egzersize esprili bir dille *"My beautiful mustache"* adını vermiştir.
+
+```text
+                  Outliers (Aykırı Değerler)
+                      •    •   •
+   Min      Q1      Median     Q3       Max
+────┬───────┌─────────┬────────┐─────────┬───────► Fiyat Ekseni
+    │       │         │        │         │
+ ───┴───────┤         │        ├─────────┴───
+ (Sol Bıyık)└─────────┴────────┘ (Sağ Bıyık)
+               IQR (%50 Kutu)
+```
+- **Kutunun İçi:** Verinin tam ortasındaki %50'lik dilimdir (Q1 ile Q3 arası).
+- **Ortadaki Çizgi:** Medyan (ortanca) değerdir.
+- **Bıyıklar (Whiskers):** Normal dağılım sınırlarıdır ($Q1 - 1.5 \times IQR$ ve $Q3 + 1.5 \times IQR$).
+- **Sağdaki Noktalar:** Normalin çok üstündeki lüks ürünler veya aykırı değerlerdir (Outliers).
+- **Negatif Fiyat (`min = -79.37`):** Ham veri setinde iade, hediye çeki veya veri kayıt hatasından kaynaklanan negatif değerler vardır; bu durumu fark ettiğinizi savunmada belirtmeniz gerekir.
+
+---
+
+### 2. Ex03: Neden "Highest Building" (En Yüksek Bina)?
+E-ticaret sitelerinde müşterilerin %80'i yalnızca 1 veya 2 kez sipariş verir. 10'dan fazla sipariş verenlerin sayısı çok azdır.
+Bu veriyi histograma döktüğünüzde, $x=1$ ve $x=2$ sütunları **New York'taki Empire State gökdeleni gibi tavana fırlar**, diğer sütunlar ise yer seviyesinde kalır. Egzersizin adı bu görsel benzerlikten gelmektedir!
+
+---
+
+### 3. Ex04: "Elbow" (Dirsek) Grafiği
+Bu grafik, bir kolun bükülmüş dirseğine benzer. 
+- $k=1$'den başlarken hata (Inertia) uçurum gibi düşer.
+- Belli bir $k$ sayısından sonra düşüş hızı yavaşlar ve yataylaşır.
+- Bükülmenin en net olduğu dirsek eklemi (elbow point), en ideal küme sayısıdır.
+
+---
+
+### 4. PDF'deki "?" ve "??" İşaretlerinin Gerçek Sırrı
+
+Subject PDF'sinin 13. ve 14. sayfalarındaki görselleri OCR ile taradığımızda şu metinlerle karşılaşırız:
+```text
+Average "Loyal customers": ?? A
+Average "New customers": ?? A
+Average "inactive": ?? A
+Title: Clusters of customers ??
+```
+
+> [!CAUTION]
+> **Bu soru işaretleri bir hata, bug veya eksik kod DEĞİLDİR!**  
+> Bunlar subject yazarının bıraktığı **PLACEHOLDER (Doldurulması Gereken Boşluk)** işaretleridir.  
+> 
+> **Anlamı şudur:**  
+> Subject yazarı sizin yerinize sayıları yazamaz; çünkü siz modeli Şubat ayını da katarak kendi veritabanınızda çalıştıracaksınız. Bu soru işaretleri size der ki:  
+> *"Ben buraya '??' koydum; sen kendi çalıştırdığın K-Means sonucuna göre 'Sadık Müşterilerimin ortalama harcaması 45.2 A', 'Yeni müşterilerimin ortalama harcaması 12.8 A' şeklinde kendi gerçek sayılarını bulup grafiğin üzerine veya raporuna yazacaksın!"*
+
+---
+
+## 6. Soru 5: Clustering (Kümeleme) Nedir, Ne İşe Yarar? Elbow Method Nasıl Çalışır?
+
+> **Soru:**  
+> *"Clustering kavramını detaylıca açıkla. Bunun amacı nedir, ne işe yarar, nasıl yapılır ? Elbow Method nedir, örnekli açıkla ?"*
+
+### Cevap:
+
+### 1. Clustering Nedir ve Amacı Nedir?
+Clustering, **Denetimsiz Makine Öğrenimi (Unsupervised Learning)** yöntemidir.
+- **Supervised (Denetimli):** Veride hedef etiket bellidir (Örn: "Bu hasta kanser mi? Evet/Hayır").
+- **Unsupervised (Denetimsiz):** Elimizde hiçbir hazır etiket yoktur! Veritabanında *"Bu müşteri sadıktır, bu müşteri terk etmek üzeredir"* diye bir kolon yazmaz.
+
+**Amacı:** Benzer davranışlar sergileyen veri noktalarını matematiksel uzaklıklarına göre keşfedip aynı sepetlerde (kümelerde) toplamaktır.
+
+### 2. Müşteri Segmentasyonunda Nasıl Yapılır? (RFM Modeli)
+Ham transaction tablosunu K-Means'e veremezsiniz; çünkü bir müşterinin 50 satırı varken diğerinin 1 satırı vardır. Veri **müşteri seviyesine (Customer-Level)** indirgenmelidir:
+
+```text
+Ham Veri (Loglar)                      RFM Tablosu (1 Satır = 1 Müşteri)
+┌─────────┬────────────┬───────┐      ┌─────────┬─────────┬───────────┬──────────┐
+│ user_id │ event_time │ price │ ───► │ user_id │ Recency │ Frequency │ Monetary │
+├─────────┼────────────┼───────┤      ├─────────┼─────────┼───────────┼──────────┤
+│ 101     │ 2023-02-20 │ 50    │      │ 101     │ 3 gün   │ 2 sipariş │ 80 A     │
+│ 101     │ 2023-02-23 │ 30    │      │ 102     │ 95 gün  │ 1 sipariş │ 15 A     │
+│ 102     │ 2022-11-10 │ 15    │      └─────────┴─────────┴───────────┴──────────┘
+└─────────┴────────────┴───────┘
+```
+- **Recency (Yenilik):** Müşterinin son alışverişinden bugüne kaç gün geçti? (Küçük olması iyidir).
+- **Frequency (Sıklık):** Müşteri toplam kaç kez alışveriş yaptı? (Büyük olması iyidir).
+- **Monetary (Parasal Değer):** Müşteri toplam kaç Altairian Doları harcadı? (Büyük olması iyidir).
+
+---
+
+### 3. Elbow Method Nedir ve Nasıl Çalışır?
+K-Means algoritmasına başlarken parametre olarak $k$ sayısını (kaç küme istediğimizi) bizim vermemiz gerekir. Peki patrona gidip *"Neden 4 küme yaptın?"* sorusuna nasıl bilimsel cevap vereceğiz?
+
+İşte **Elbow Method** bu seçimi kanıtlama aracıdır:
+1. Algoritma her nokta ile o noktanın bağlı olduğu küme merkezi arasındaki mesafeyi ölçer.
+2. Bu mesafelerin karelerinin toplamına **Inertia (veya WCSS - Within-Cluster Sum of Squares)** denir.
+3. Kümeler mükemmel ve sıkıysa Inertia küçüktür.
+
+**Örnek Senaryo:**
+```text
+Inertia
+  ▲
+  │  ● (k=1, Inertia = 280.000)  [Tek küme: herkes çorba, hata devasa]
+  │   \
+  │    \
+  │     ● (k=2, Inertia = 150.000) [Büyük düşüş]
+  │      \
+  │       ● (k=3, Inertia = 90.000)  [Ciddi toparlanma]
+  │        \
+  │         ● (k=4, Inertia = 60.000) <=== DİRSEK NOKTASI (ELBOW)!
+  │          └───● (k=5, Inertia = 52.000) [Bundan sonraki düşüşler önemsiz]
+  │               └───● (k=6, Inertia = 46.000)
+  └────────────────────────────────────────► k (Küme Sayısı)
+```
+- $k=1$'den $k=4$'e kadar hata dev adımlarla azalır.
+- $k=4$'ten sonra yeni küme eklemek hatayı çok az düşürür ama iş modelini gereksiz karmaşıklaştırır.
+- Bu yüzden grafik kol dirseği gibi $k=4$ noktasında kırılır: **Optimum küme sayısı 4'tür!**
+
+---
+
+## 7. Soru 6: Kümeleme Algoritmaları Nelerdir, Kaç Tane Vardır ve Nerelerde Kullanılırlar?
+
+> **Soru:**  
+> *"ex05 te geçen 'You have to use a Clustering Algorithms' kısmındaki bu algoritmalar neler, kaç tane var ve hangi amaçlar için kullanılıyorlar? Detaylı ve örnekli açıklama yap."*
+
+### Cevap:
+
+Literatürde onlarca kümeleme algoritması vardır; ancak makine öğrenimi dünyasında bunlar **4 ana aileye** ayrılır:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        KÜMELEME ALGORİTMALARI AİLESİ                        │
+├──────────────────────┬──────────────────────┬───────────────────────────────┤
+│ Aile                 │ Temsilci Algoritmalar│ En Uygun Olduğu Alan          │
+├──────────────────────┼──────────────────────┼───────────────────────────────┤
+│ 1. Merkez Tabanlı    │ K-Means, K-Medoids   │ Sayısal veriler, küresel      │
+│    (Centroid-based)  │                      │ müşteri segmentasyonu (RFM)   │
+├──────────────────────┼──────────────────────┼───────────────────────────────┤
+│ 2. Hiyerarşik        │ Agglomerative,       │ Küçük veri setleri, soy ağacı,│
+│    (Hierarchical)    │ Divisive             │ dendrogram analizleri         │
+├──────────────────────┼──────────────────────┼───────────────────────────────┤
+│ 3. Yoğunluk Tabanlı  │ DBSCAN, OPTICS       │ Aykırı değer tespiti (Fraud), │
+│    (Density-based)   │                      │ düzensiz/hilal şekilli veriler│
+├──────────────────────┼──────────────────────┼───────────────────────────────┤
+│ 4. Dağılım Tabanlı   │ GMM (Gaussian        │ Olasılıksal kümeleme, iç içe  │
+│    (Distribution)    │ Mixture Models)      │ geçmiş gauss dağılımları      │
+└──────────────────────┴──────────────────────┴───────────────────────────────┘
+```
+
+#### 1. K-Means (Bu Projenin Şampiyonu)
+- **Nasıl Çalışır?** Rastgele $k$ adet merkez (centroid) seçer. Her noktayı en yakın merkeze bağlar. Sonra merkezleri o kümedeki noktaların ortalamasına kaydırır. Merkezler sabitlenene kadar tekrarlar.
+- **Neden Burada Kullanıyoruz?** Hızlıdır, milyonlarca satıra ölçeklenir, sayısal RFM özellikleri için idealdir ve Elbow grafiğiyle doğrudan doğrulanabilir.
+
+#### 2. Hierarchical / Agglomerative Clustering
+- **Nasıl Çalışır?** Başlangıçta her müşteriyi tek başına bir küme sayar. Birbirine en yakın iki müşteriyi birleştirir. Adım adım tüm veriyi tek bir ağaçta (Dendrogram) toplar.
+- **Kullanım:** Biyolojide gen dizilimleri, şirket organizasyon şemaları. (Milyonlarca satırda çok yavaştır, bu projede K-Means tercih edilir).
+
+#### 3. DBSCAN (Density-Based Spatial Clustering of Applications with Noise)
+- **Nasıl Çalışır?** Noktaların birbirine olan yoğunluğuna bakar. Yoğun bölgeleri küme yapar; tenha yerlerde tek başına kalan noktaları doğrudan **GÜRÜLTÜ / AYKIRI DEĞER (NOISE = -1)** ilan eder.
+- **Kullanım:** Kredi kartı sahtekarlığı (Fraud Detection), GPS rota analizi.
+
+#### 4. Gaussian Mixture Models (GMM)
+- **Nasıl Çalışır?** "Yumuşak Kümeleme" (Soft Clustering) yapar. Bir müşteriye sadece "Cluster 1" demez; *"%70 ihtimalle Sadık, %30 ihtimalle Uyuyan"* der.
+
+---
+
+## 8. Soru 7: Ex05 Grafiklerinin Eksenleri Ne Anlama Gelir? Centroid Nedir?
+
+> **Soru:**  
+> *"Özellikle ex05 in grafiklerinden birşey anlamadım, yatay eksende dikey eksende yazan kavramlar ne demek, centroid ne demek v.b. ?"*
+
+### Cevap:
+
+Subject PDF'sindeki Ex05 sayfalarında yer alan görselleri adım adım deşifre edelim:
+
+### 1. Sayfa 12'deki Bar Grafiği (Segment Dağılımı):
+- **Dikey Eksen (Y Ekseni):** Belirlediğiniz iş segmentlerinin isimleridir:
+  - `Loyal customers` (Sadık müşteriler)
+  - `New customers` (Yeni müşteriler)
+  - `inactive` (Terk etmiş / Uyuyan müşteriler)
+- **Yatay Eksen (X Ekseni):** `number of customers` (O segmentte kaç kişi olduğu: örn. 39.586 kişi).
+
+---
+
+### 2. Sayfa 13'teki Dağılım Grafiği (Scatter Plot):
+- **Yatay Eksen (X Ekseni): `Median Recency (month)`**  
+  Müşterinin son alışverişinin üzerinden kaç ay geçtiğini gösterir.
+  - `0`: Bu ay alışveriş yapmış, sımsıcak müşteri!
+  - `3 - 4`: 4 aydır hiçbir şey almamış, platformu unutmuş müşteri!
+- **Dikey Eksen (Y Ekseni): `Median Frequency`**  
+  Müşterinin yaptığı sipariş adedini gösterir.
+  - `1 - 2`: Seyrek alışveriş yapanlar.
+  - `10 - 20`: Sürekli sipariş veren sadık kullanıcılar.
+- **Renkler:** Her bir nokta bir müşteridir ve rengi ait olduğu kümeyi gösterir.
+
+---
+
+### 3. Centroid (Küme Merkezi) Nedir?
+
+```text
+        Frequency
+            ▲
+            │         ● (Cluster 1 Üyeleri)
+            │      ●  ★  ●   <=== ★ İŞARETİ CENTROID'DİR!
+            │         ●
+            │
+            │  ▲ (Cluster 2 Üyeleri)
+            │▲ ★ ▲
+            └─────────────────────────► Recency
+```
+
+- **Tanım:** Centroid, o kümedeki **tüm müşterilerin özelliklerinin ağırlık merkezidir (aritmetik ortalama vektörüdür)**.
+- **Somut Örnek:**
+  Diyelim ki "Gold VIP" kümenizde 10.000 müşteri var.
+  Bu 10.000 kişinin ortalamasını aldığınızda:
+  - Ortalama Recency = 2 gün
+  - Ortalama Frequency = 18 sipariş
+  - Ortalama Monetary = 3.200 A
+  İşte `(Recency=2, Frequency=18, Monetary=3200)` koordinatındaki sanal nokta o kümenin **CENTROID**'idir.
+- **Grafikte Nasıl Görünür?**  
+  PDF'de ve profesyonel grafiklerde centroid'ler, müşteri noktalarının tam ortasında parlayan **büyük yıldızlar, çarpı işaretleri (X) veya iri sarı noktalar** olarak gösterilir.
+
+---
+
+## 9. Adım Adım DS_2 Yol Haritası ve Kod İskeletleri
+
+### Adım 1: Python Sanal Ortamı ve Kütüphaneler
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install pandas numpy matplotlib seaborn scikit-learn sqlalchemy psycopg2-binary
+```
+
+---
+
+### Adım 2: Ex00 — `ds_2/ex00/pie.py`
+```python
+import matplotlib.pyplot as plt
+import pandas as pd
+from sqlalchemy import create_engine
+
+# 1. PostgreSQL bağlantısı
+engine = create_engine("postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
+
+# 2. Olay türlerini say
+query = """
+SELECT event_type, COUNT(*) AS count
+FROM customers
+GROUP BY event_type
+ORDER BY count DESC;
+"""
+df = pd.read_sql(query, engine)
+
+# 3. Pie Chart çizimi
+plt.figure(figsize=(8, 8))
+plt.pie(df["count"], labels=df["event_type"], autopct="%1.1f%%", startangle=140)
+plt.title("Distribution of Customer Events")
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+### Adım 3: Ex01 — `ds_2/ex01/chart.py`
+```python
+import matplotlib.pyplot as plt
+import pandas as pd
+from sqlalchemy import create_engine
+
+engine = create_engine("postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
+
+query = """
+SELECT 
+    DATE_TRUNC('month', event_time) AS month,
+    COUNT(DISTINCT user_id) AS customer_count,
+    SUM(price) AS total_sales
+FROM customers
+WHERE event_type = 'purchase'
+GROUP BY DATE_TRUNC('month', event_time)
+ORDER BY month;
+"""
+df = pd.read_sql(query, engine)
+df["month_label"] = pd.to_datetime(df["month"]).dt.strftime("%b")
+df["total_sales_million"] = df["total_sales"] / 1_000_000
+df["avg_spend"] = df["total_sales"] / df["customer_count"]
+
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+# 1. Number of customers
+axes[0].plot(df["month_label"], df["customer_count"], marker="o", color="royalblue")
+axes[0].set_title("Number of Customers")
+axes[0].set_ylabel("Customers")
+
+# 2. Total sales in million A
+axes[1].bar(df["month_label"], df["total_sales_million"], color="forestgreen", alpha=0.7)
+axes[1].set_title("Total Sales (Million A)")
+axes[1].set_ylabel("Million Altairian Dollars")
+
+# 3. Average spend per customer
+axes[2].plot(df["month_label"], df["avg_spend"], marker="s", color="darkorange")
+axes[2].set_title("Average Spend / Customer")
+axes[2].set_ylabel("A per Customer")
+
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+### Adım 4: Ex02 — `ds_2/ex02/mustache.py`
+```python
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from sqlalchemy import create_engine
+
+engine = create_engine("postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
+
+# Ürün fiyatlarını çek
+df = pd.read_sql("SELECT price FROM customers WHERE event_type = 'purchase';", engine)
+
+# İstatistikler
+print("=== Satın Alınan Ürün Fiyat İstatistikleri ===")
+print(df["price"].describe())
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# 1. Item Price Box Plot
+sns.boxplot(ax=axes[0], x=df["price"], color="skyblue")
+axes[0].set_title("Purchased Item Prices")
+axes[0].set_xlabel("Price (Altairian Dollars)")
+
+# 2. User Average Basket Price Box Plot
+basket_df = pd.read_sql("""
+    SELECT user_id, AVG(session_total) as avg_basket
+    FROM (
+        SELECT user_id, user_session, SUM(price) as session_total
+        FROM customers
+        WHERE event_type = 'purchase'
+        GROUP BY user_id, user_session
+    ) t
+    GROUP BY user_id;
+""", engine)
+
+sns.boxplot(ax=axes[1], x=basket_df["avg_basket"], color="lightgreen")
+axes[1].set_title("Average Basket Price per User")
+axes[1].set_xlabel("Basket Price (Altairian Dollars)")
+
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+### Adım 5: Ex03 — `ds_2/ex03/Building.py`
+```python
+import matplotlib.pyplot as plt
+import pandas as pd
+from sqlalchemy import create_engine
+
+engine = create_engine("postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
+
+# Müşteri bazında frekans ve parasal tutar
+rfm_raw = pd.read_sql("""
+    SELECT user_id, COUNT(*) AS frequency, SUM(price) AS monetary
+    FROM customers
+    WHERE event_type = 'purchase'
+    GROUP BY user_id;
+""", engine)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Sipariş sıklığı (Frequency)
+axes[0].hist(rfm_raw["frequency"], bins=30, range=(0, 30), color="purple", edgecolor="black")
+axes[0].set_title("Number of Orders according to Frequency")
+axes[0].set_xlabel("Frequency (Order Count)")
+axes[0].set_ylabel("Customers")
+
+# Harcama miktarı (Monetary)
+axes[1].hist(rfm_raw["monetary"], bins=30, range=(0, 250), color="teal", edgecolor="black")
+axes[1].set_title("Altairian Dollars Spent by Customers")
+axes[1].set_xlabel("Monetary Value in A")
+axes[1].set_ylabel("Customers")
+
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+### Adım 6: Ex04 — `ds_2/ex04/elbow.py`
+```python
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sqlalchemy import create_engine
+
+engine = create_engine("postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
+
+# RFM Tablosunu oluştur
+rfm = pd.read_sql("""
+    SELECT 
+        user_id,
+        EXTRACT(DAY FROM (NOW() - MAX(event_time))) AS recency,
+        COUNT(*) AS frequency,
+        SUM(price) AS monetary
+    FROM customers
+    WHERE event_type = 'purchase'
+    GROUP BY user_id;
+""", engine)
+
+# Ölçeklendirme
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(rfm[["recency", "frequency", "monetary"]])
+
+# Elbow döngüsü
+inertias = []
+K_range = range(1, 11)
+for k in K_range:
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+    kmeans.fit(X_scaled)
+    inertias.append(kmeans.inertia_)
+
+# Çizim
+plt.figure(figsize=(8, 5))
+plt.plot(K_range, inertias, marker="o", color="crimson")
+plt.title("The Elbow Method")
+plt.xlabel("Number of clusters (k)")
+plt.ylabel("Inertia (WCSS)")
+plt.grid(True)
+plt.show()
+```
+
+---
+
+### Adım 7: Ex05 — `ds_2/ex05/Clustering.py`
+```python
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sqlalchemy import create_engine
+
+engine = create_engine("postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
+
+# RFM verisini çek
+rfm = pd.read_sql("""
+    SELECT 
+        user_id,
+        EXTRACT(DAY FROM (NOW() - MAX(event_time))) AS recency,
+        COUNT(*) AS frequency,
+        SUM(price) AS monetary
+    FROM customers
+    WHERE event_type = 'purchase'
+    GROUP BY user_id;
+""", engine)
+
+scaler = StandardScaler()
+features = ["recency", "frequency", "monetary"]
+X_scaled = scaler.fit_transform(rfm[features])
+
+# Optimum k=4 ile kümeleme
+kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+rfm["cluster"] = kmeans.fit_predict(X_scaled)
+
+# Kümeleri profilleyip isimlendirelim
+cluster_summary = rfm.groupby("cluster")[features].mean()
+print("Kümelerin Ortalama Değerleri:")
+print(cluster_summary)
+
+# Örnek İsimlendirme Eşleştirmesi (Profil sonuçlarına göre):
+segment_names = {
+    0: "Loyal Customers",
+    1: "New Customers",
+    2: "Inactive Customers",
+    3: "Platinum VIP"
+}
+rfm["segment"] = rfm["cluster"].map(segment_names)
+
+# GRAFİK 1: Segment Büyüklükleri (Bar Plot)
+plt.figure(figsize=(8, 4))
+sns.countplot(data=rfm, y="segment", palette="Set2")
+plt.title("Customer Distribution by Segment")
+plt.xlabel("Number of Customers")
+plt.tight_layout()
+plt.show()
+
+# GRAFİK 2: Kümeler ve Centroidler (Scatter Plot: Recency vs Frequency)
+plt.figure(figsize=(9, 6))
+sns.scatterplot(data=rfm, x="recency", y="frequency", hue="segment", alpha=0.6, palette="Set1")
+
+# Centroidleri orijinal ölçeğe geri çevirip çizelim
+centroids = scaler.inverse_transform(kmeans.cluster_centers_)
+plt.scatter(centroids[:, 0], centroids[:, 1], s=250, c="yellow", edgecolor="black", marker="X", label="Centroids")
+
+plt.title("Customer Clusters with Centroids")
+plt.xlabel("Recency (Days)")
+plt.ylabel("Frequency (Orders)")
+plt.legend()
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+## 10. Peer-Evaluation (Savunma) Taktikleri
+
+Evaluator geldiğinde kendinizden emin bir şekilde şu yanıtları verin:
+
+1. **"Neden Python ve Matplotlib seçtin?"**  
+   *"PostgreSQL veriyi saklamak ve SQL ile ağır filtrelemeyi yapmak için harika; ancak görselleştirme, istatistiksel dağılımlar ve makine öğrenimi algoritmaları için sektör standardı Python ekosistemidir (Pandas, Seaborn, Scikit-Learn)."*
+2. **"Neden K-Means ve RFM kullandın?"**  
+   *"E-ticaret sektöründe müşteriyi doğrudan etiketleyen bir sütun bulunmaz. Müşteriyi en iyi tanımlayan 3 davranışsal özellik vardır: Ne zaman geldi (Recency), ne sıklıkla geldi (Frequency) ve ne kadar harcadı (Monetary). Bu metrikleri StandardScaler ile normalize edip K-Means ile benzer müşterileri kümeledim."*
+3. **"Neden 4 küme seçtin?"**  
+   *"Ex04'teki Elbow Method grafiğimde $k=4$ noktasına kadar Inertia çok hızlı düşerken, 4'ten sonra düşüş hızı plato çizdi. Matematiksel dirsek noktası $k=4$'tü ve bu da pazarlama ekibinin yönetebileceği 4 mantıklı gruba (Yeni, Sadık, Uyuyan, VIP) tam olarak karşılık geldi."*
+4. **"Grafikteki sarı 'X' işaretleri neyi temsil ediyor?"**  
+   *"Onlar her kümenin ağırlık merkezi olan Centroid'lerdir. O gruptaki tüm müşterilerin koordinatlarının aritmetik ortalamasıdır."*
+5. **"PDF'deki '??' işaretleri neydi?"**  
+   *"Onlar yazarın koyduğu placeholder'lardı. Her öğrencinin kendi veri setinde hesaplayacağı dinamik değerleri simgeliyordu. Ben de kendi modelimin ürettiği ortalamaları grafiğime yansıttım."*
+
