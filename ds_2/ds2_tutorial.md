@@ -16,6 +16,7 @@ Bu rehber, **42 Data Science Piscine** modüllerinden **DS_2 (Data Viz)** projes
 8. [Soru 7: Ex05 Grafiklerinin Eksenleri Ne Anlama Gelir? Centroid Nedir?](#8-soru-7-ex05-grafiklerinin-eksenleri-ne-anlama-gelir-centroid-nedir)
 9. [Adım Adım DS_2 Yol Haritası ve Kod İskeletleri](#9-adım-adım-ds_2-yol-haritası-ve-kod-iskeletleri)
 10. [Peer-Evaluation (Savunma) Taktikleri](#10-peer-evaluation-savunma-taktikleri)
+11. [Ex00 Soru ve Cevapları](#11-ex00-soru-ve-cevapları)
 
 ---
 
@@ -712,4 +713,210 @@ Evaluator geldiğinde kendinizden emin bir şekilde şu yanıtları verin:
    *"Onlar her kümenin ağırlık merkezi olan Centroid'lerdir. O gruptaki tüm müşterilerin koordinatlarının aritmetik ortalamasıdır."*
 5. **"PDF'deki '??' işaretleri neydi?"**  
    *"Onlar yazarın koyduğu placeholder'lardı. Her öğrencinin kendi veri setinde hesaplayacağı dinamik değerleri simgeliyordu. Ben de kendi modelimin ürettiği ortalamaları grafiğime yansıttım."*
+
+---
+
+## 11. Ex00 Soru ve Cevapları
+
+Bu bölüm, `ds_2/ex00/pie.py` scriptinde kullanılan mimariyi, kütüphanelerin iç mekanizmalarını, subject isterlerini ve sektördeki veri bilimi pratiklerini en ince ayrıntısına kadar açıklar.
+
+---
+
+### 1. `pie.py` Kodunun Genel Mimarisi ve Akışı
+
+`pie.py` kodu, klasik bir **Veri Ambarından Analitik Görselleştirme Üretme** boru hattıdır (Data Pipeline):
+
+```
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│   PostgreSQL    │ ───►  │   SQLAlchemy    │ ───►  │     Pandas      │ ───►  │   Matplotlib    │
+│  (customers db) │ (SQL) │ (Bağlantı Havuzu│ (df)  │ (Veri İnceleme  │       │  (Pie Chart GUI │
+│  19M+ Satır     │       │  engine.connect)│       │  Counts/Types)  │       │   Penceresi)    │
+└─────────────────┘       └─────────────────┘       └─────────────────┘       └─────────────────┘
+```
+
+1. **Bağlantı Tanımı:** `create_engine` ile veritabanının adresi ve kimlik bilgileri tanımlanır.
+2. **Sorgu Çalıştırma:** `with engine.connect()` ile veritabanı havuzundan bir bağlantı alınır ve SQL sorgusu PostgreSQL'e iletilir.
+3. **DataFrame Oluşturma:** PostgreSQL 19+ milyon satırı kendi içinde toplayıp sadece 4 satırlık sonucu Pandas `DataFrame` nesnesi olarak Python'a döndürür.
+4. **Veri Ayrıştırma:** Olay türleri ve sayıları kolonlardan okunur.
+5. **Görselleştirme:** Matplotlib `plt.pie` fonksiyonu bu 4 sayıyı orantılayarak pasta grafiği çizer ve `plt.show()` ile masaüstünde pencere olarak görüntüler.
+
+---
+
+### 2. Alt Soruların Detaylı Açıklamaları
+
+---
+
+#### a) SQLAlchemy Nedir, Ne İçin Kullanılır? `create_engine` Fonksiyonu Detayları
+
+- **SQLAlchemy Nedir?**  
+  Python ekosisteminin en kapsamlı ve sektör standardı **Veritabanı Araç Takımı (Database Toolkit)** ve **ORM (Object Relational Mapper)** kütüphanesidir. İki katmandan oluşur:
+  1. *Core (Çekirdek):* Veritabanı bağlantı havuzlarını (connection pooling), dialect çeviricilerini ve ham SQL işlemlerini yönetir.
+  2. *ORM:* Veritabanı tablolarını Python sınıfları (class) ile eşler. Bu projede doğrudan SQL çalıştırdığımız için **Core** yeteneklerini kullanıyoruz.
+
+- **`create_engine` Fonksiyonu Nedir ve Nasıl Çalışır?**  
+  Veritabanıyla iletişim kuracak olan merkezi yönetim nesnesini (`Engine`) üretir.  
+  > [!NOTE]
+  > **Önemli Mantık (Lazy Initialization):** `create_engine(...)` satırı çalıştığı anda fiziksel olarak veritabanına bağlanmaz! Yalnızca bağlantı kurallarını ve havuzunu hazırlar. Gerçek fiziksel bağlantı, ilk sorgu atıldığında veya `engine.connect()` dendiğinde kurulur.
+
+- **Parametreleri:**
+  - **`url` (1. zorunlu parametre):** Bağlantı URL dizesidir.  
+    Format: `dialect+driver://username:password@host:port/database`
+    - `postgresql`: Veritabanı motoru (dialect)
+    - `psycopg2`: Python ile PostgreSQL arasındaki C tabanlı sürücü (driver)
+    - `acosgun:mysecretpassword`: Kullanıcı adı ve parola
+    - `localhost:5432`: Sunucu adresi ve varsayılan PostgreSQL portu
+    - `piscineds`: Hedef veritabanı adı
+  - **`echo=False` (Opsiyonel, bool):** `True` yapılırsa, arka planda çalıştırılan tüm saf SQL komutları terminale loglanır (debug için çok faydalıdır).
+  - **`pool_size=5` (Opsiyonel, int):** Havuzda sürekli açık tutulacak bağlantı sayısı.
+  - **`max_overflow=10` (Opsiyonel, int):** Havuz dolduğunda geçici açılabilecek ekstra bağlantı kotası.
+
+- **Dönüş Değeri:**  
+  Bir `sqlalchemy.engine.base.Engine` nesnesi döndürür. Bu nesne bağlantı havuzunu (Pool) ve SQL çeviricisini (Dialect) içinde barındırır.
+
+---
+
+#### b) Veritabanı Şifresinin Kodda Açık Olması ve `ds_2.pdf` İncelemesi
+
+- **`ds_2.pdf` Subject Dosyası Ne Diyor?**  
+  Subject dosyasının 3. ve 14. sayfaları incelendiğinde:
+  - Turn-in dosyaları yalnızca `pie.*`, `chart.*`, `mustache.*`, `Building.*`, `elbow.*`, `Clustering.*` olarak sınırlandırılmıştır.
+  - Bir `.env` dosyası, `requirements.txt` veya ekstra konfigürasyon dosyası teslim etmeniz **istenmemektedir**.
+  - Sayfa 14'teki kural: *"The evaluation process will happen on the computer of the evaluated group."* (Değerlendirme sizin bilgisayarınızda yapılacaktır).
+  - Havuz projelerinde Docker ortamı ve veritabanı kimlik bilgileri (`acosgun:mysecretpassword`, `localhost:5432/piscineds`) ödev konusu gereği sabittir.
+
+- **Şifreyi Gizlemek / `.env` Oluşturmak Bekleniyor mu?**  
+  **Hayır, bu projede beklenmiyor.** Şifrenin kod içinde açık (hardcoded) olması puan kırdırmaz. Hatta evaluator kodunuzu çalıştırdığında ekstra bir ortam değişkeni ayarlamak zorunda kalmadan doğrudan `python pie.py` yazıp sonucu görmesini sağlar.
+
+- **Sektör Standardı Nedir?**  
+  Gerçek şirket projelerinde şifreler **asla** koda yazılmaz. `python-dotenv` kütüphanesiyle `.env` dosyasından veya Kubernetes/Cloud Secret Manager üzerinden çekilir:
+  ```python
+  import os
+  db_password = os.getenv("DB_PASSWORD")
+  ```
+  Savunmada evaluatöre *"Gerçek hayatta burayı `os.getenv` ile `.env`'den çekeriz ancak 42 değerlendirme ortamında tak-çalıştır olabilmesi için sabit bıraktım"* demeniz tam puanlık bir veri mühendisi refleksidir.
+
+---
+
+#### c) Bu Projede Flake8 Kurallarına Uymak Bekleniyor mu?
+
+- **`ds_2.pdf` İncelemesi:**  
+  Subject'in 3. sayfasında *"You are free to use any language of your choice for this module"* ve her egzersizde *"Allowed functions: All"* denmektedir.
+- Projede Python zorunlu dahi tutulmamış (R, C++, Julia vb. serbesttir). Dolayısıyla 42 C havuzundaki **Norminette gibi zorunlu bir Flake8 kontrol mekanizması YOKTUR.**
+- Flake8 uyumsuzluğu (örneğin 79 karakteri aşan satırlar, girintiler) projenin başarısız olmasına sebep olmaz. Ancak kodunuzun temiz, okunabilir ve PEP 8 standartlarına yakın olması peer-evaluation sırasında evaluatörün gözünde güvenilirliğinizi artırır.
+
+---
+
+#### d) SQL Tarafında Gruplama vs. Python'da Filtreleme: Hangisi Neden Tercih Edilir?
+
+**Kesinlikle ve tartışmasız SQL tarafında gruplama tercih edilir!**
+
+| Kriter | SQL'de Gruplama (`GROUP BY`) | Python'da Gruplama (`df.groupby`) |
+|---|---|---|
+| **Veri Transferi (Ağ/Disk)** | Yalnızca **4 satır** (birkaç bayt) çekilir. | **19.175.907 satır** (~2 GB ham veri) çekilir. |
+| **RAM (Bellek) Tüketimi** | Neredeyse 0 MB RAM harcar. | Python belleğinde 2-3 GB yer kaplar, sistemi dondurabilir. |
+| **İşlem Süresi** | C ile yazılmış PostgreSQL motorunda **1-2 saniye**. | Ağdan transfer dakikalar sürer, Python'da OOM (Out Of Memory) çökmesi yaşanabilir. |
+
+> [!IMPORTANT]
+> **Sektörün Altın Kuralı (Compute Pushdown):**  
+> *"Veriyi hesaplamaya götürme; hesaplamayı verinin durduğu yere (veritabanına) götür."*  
+> Veri Bilimciler ve Veri Mühendisleri, filtreleme, birleştirme (JOIN) ve toplulaştırma (Aggregation) işlemlerini her zaman veritabanı motoruna yaptırır; Python'a yalnızca özetlenmiş temiz sonucu çeker.
+
+---
+
+#### e) Her Alıştırmada Yeni Engine/Bağlantı/Tablo mu Açılmalı?
+
+- **Tablo Açısından:**  
+  **Kesinlikle hayır!** Yeni bir tablo oluşturmuyorsunuz. DS_1'de hazırladığınız tek bir `customers` tablosu vardır. `ex00`, `ex01`, `ex02`, `ex03`, `ex04` ve `ex05` alıştırmalarının tümü bu aynı `customers` tablosundan beslenir (salt okunur / read-only).
+- **Engine ve Bağlantı Açısından (42 Standartları):**  
+  42 değerlendirmesinde her alıştırma bağımsız olarak test edilir:  
+  Evaluatör önce `cd ex00 && python pie.py` çalıştırır, sonra `cd ../ex01 && python chart.py` çalıştırır.  
+  Her klasörün kendi kendine yeten bağımsız bir script (**self-contained script**) olması zorunludur. Bu yüzden her alıştırma dosyasında (`pie.py`, `chart.py`, vb.) bağlantı satırını (`engine = create_engine(...)`) baştan yazmak 42 için en doğru yöntemdir.
+- **Sektör Standardı:**  
+  Büyük bir projede her dosyada connection string kopyalanmaz. Ortak bir `database.py` modülü yazılır ve diğer dosyalar `from database import get_connection` şeklinde merkezi bağlantıyı çağırır.
+
+---
+
+#### f) `engine.connect()` Kullanımı ve `Connection` Nesnesi Nedir?
+
+- **Nasıl Çalışır?**  
+  `engine.connect()` çağrıldığında SQLAlchemy arka plandaki bağlantı havuzundan (Connection Pool) hazırda bekleyen canlı bir veritabanı soketini (psycopg2 socket) ödünç alır.
+- **Veri Tipi:**  
+  `sqlalchemy.engine.base.Connection` sınıfına ait bir nesnedir.
+- **Neden Context Manager (`with ... as connection`) ile Kullanılır?**  
+  Veritabanı bağlantıları işletim sistemi kaynaklarıdır (file descriptor/socket). Eğer açık bırakılırlarsa veritabanı kilitlenir.  
+  `with` bloğu tamamlandığında (veya bir hata fırlatıldığında), `connection` nesnesi **otomatik olarak havuza iade edilir (release back to pool)**. Fiziksel soket kapatılıp yok edilmez, bir sonraki sorgu için havuzda dinlenmeye çekilir.
+- **Özellikleri:**  
+  - `connection.execute(text("..."))`: Ham SQL çalıştırma imkanı sunar.
+  - `connection.begin()` / `connection.commit()` / `connection.rollback()`: İşlem (transaction) yönetimini destekler.
+  - Thread-safe'tir; çoklu iş parçacıklarında güvenle çalışır.
+
+---
+
+#### g) `pd.read_sql` Fonksiyonu Detayları ve `read_sql_query` Farkı
+
+- **`pd.read_sql` Nedir?**  
+  Pandas'ın SQL verilerini doğrudan `DataFrame` nesnesine dönüştüren ana köprü fonksiyonudur. Bir **"Dispatcher / Wrapper" (Yönlendirici Çatı Fonksiyon)** olarak çalışır:
+  - Eğer parametre olarak bir SQL sorgu metni verirseniz (`SELECT ...`), arka planda otomatik olarak `pd.read_sql_query()` fonksiyonunu çalıştırır.
+  - Eğer parametre olarak sadece bir tablo adı verirseniz (`"customers"`), arka planda `pd.read_sql_table()` fonksiyonunu çalıştırır.
+
+- **Temel Parametreleri:**
+  1. `sql`: Çalıştırılacak SQL sorgu metni (`str` veya `sqlalchemy.text`) ya da tablo adı.
+  2. `con`: SQLAlchemy `Engine` veya `Connection` nesnesi (bağlantı kaynağı).
+  3. `index_col` (Opsiyonel): Çekilen kolonlardan birini DataFrame'in satır indeksi yapmak için kullanılır (Örn: `index_col='event_type'`).
+  4. `params` (Opsiyonel): SQL injection'ı önlemek için sorguya güvenli parametre geçmek için kullanılır (Örn: `params={'tip': 'purchase'}`).
+  5. `parse_dates` (Opsiyonel): Tarih kolonlarını otomatik olarak Python `datetime` tipine çevirir (Örn: `parse_dates=['event_time']`).
+  6. `chunksize` (Opsiyonel, int): Milyonlarca satırı parça parça (chunk) okumak için generator üretir.
+
+- **Dönüş Değeri:**  
+  SQL sonucundaki kolon isimlerini sütun başlığı, satırları da kayıtlar olarak içeren bir **`pandas.DataFrame`** nesnesidir.
+
+- **`read_sql` vs `read_sql_query` Farkı:**  
+  Teknik olarak `read_sql` sorgu verildiğinde zaten `read_sql_query`'yi çağırır. Doğrudan `read_sql_query` kullanmak niyetinizi ("ben sadece sorgu çalıştıracağım, tablo adı vermeyeceğim") daha belirgin hale getirir; ancak pratikte ikisi de tamamen aynı sonucu üretir.
+
+---
+
+#### h) `plt.pie` Kullanımı ve Parametreleri Detayları
+
+Matplotlib'in dairesel pasta grafiği çizim fonksiyonudur.
+
+```python
+plt.pie(
+    counts,
+    labels=event_types,
+    autopct="%1.1f%%",
+    startangle=140,
+    colors=['#4C72B0', '#55A868', '#C44E52', '#8172B3'],
+    explode=(0, 0.05, 0, 0),
+    shadow=True
+)
+```
+
+- **`x` (1. parametre, örn: `counts`):**  
+  Dilimlerin büyüklüklerini belirleyen sayısal dizi. Matplotlib bu sayıların toplamını alır ve her bir sayının toplama oranına göre dilim açısını ($360^\circ \times \frac{değer}{toplam}$) hesaplar.
+- **`labels` (örn: `event_types`):**  
+  Her dilimin dış kenarına yazılacak isimler listesi (`view`, `cart` vb.).
+- **`autopct` (Automatic Percentage Format):**  
+  Dilimlerin **içine** yüzdelik değerleri otomatik hesaplayıp yazdırma formatıdır.
+  - **`"%1.1f%%"` Şablonunun Deşifresi:**
+    - `%`: Format belirtecinin başlangıcı.
+    - `1.1f`: Değeri ondalıklı sayı (float) olarak yazdır; virgülden sonra **1 basamak** göster (Örn: `50.3%`). Eğer `"%1.2f%%"` yazsaydınız `50.34%` yazardı.
+    - `%%`: Python formatlama dilinde ekrana gerçek bir `%` işareti basmak için çift yüzde kullanılır.
+  - İstenirse buraya bir lambda fonksiyonu verilerek hem yüzde hem de gerçek adet aynı anda yazdırılabilir.
+- **`startangle`:**  
+  İlk dilimin saat 3 hizasından (matematiksel $0^\circ$) itibaren saatin tersi yönünde kaç derece döndürülerek çizilmeye başlanacağını belirler. `startangle=140` pastayı daha estetik ve dengeli konumlandırır.
+- **`colors`:** Dilimlerin özel renk kodları listesi.
+- **`explode`:** Vurgulanmak istenen bir dilimi pastadan birkaç milimetre dışarı fırlatmak için kullanılır (Örn: `(0, 0.1, 0, 0)` sepete ekleme dilimini dışarı kaydırır).
+- **`shadow=True`:** Pastanın altına hafif bir 3D derinlik gölgesi ekler.
+
+---
+
+#### j) `plt.tight_layout()` Kullanmazsak Ne Olur? Ne İşe Yarar?
+
+- **Kullanmazsak Ne Olur?**  
+  Matplotlib varsayılan olarak grafik penceresinin kenar boşluklarını (margins) sabit bırakır.  
+  Eğer etiketleriniz uzunsa, grafik başlığınız iki satırsa veya pasta grafiğinin dilim yazıları dışarı taşıyorsa, bu yazılar **pencerenin kenarından kesilir (clipping problemi)** veya pencere dışına taşarak görünmez hale gelir.
+- **Ne Yapar?**  
+  `plt.tight_layout()`, figürdeki tüm görsel nesnelerin (başlıklar, eksen etiketleri, dilim yazıları, alt grafikler) sınırlarını dinamik olarak hesaplar ve kenar boşluklarını milimetrik olarak yeniden ayarlar. Böylece tüm metinler pencereye eksiksiz, ferah ve sıkışmadan sığar.
+- **Hangi Durumlarda Hayat Kurtarır?**  
+  Özellikle Ex01, Ex02 ve Ex03'te yan yana 2 veya 3 alt grafik (`plt.subplots(1, 3)`) çizdirdiğimizde grafiklerin eksen yazılarının birbirinin üstüne binmesini engellemek için **zorunlu bir sektörel standarttır**.
 

@@ -1,5 +1,3 @@
-import string
-
 from sqlalchemy import create_engine
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,21 +17,20 @@ try:
 
     print("DataFrame created successfully.")
 
-    event_types = df["event_type"].tosequence(string.ascii_letters)
+    event_types = df["event_type"]
     counts = df["event_count"]
 
-    print("Event counts:")
-    print(counts)
-    print("Event types:")
-    print(event_types)
+    print("Event event_types and counts:")
+    print(df[["event_type", "event_count"]])
 
-    plt.figure(figsize=(7, 7))
+    plt.figure(figsize=(8, 8))
     plt.pie(
         counts,
         labels=event_types,
         autopct="%1.1f%%"
     )
-    plt.title("Site Event Distribution")
+    plt.title("Distribution of Customer Events")
+    plt.tight_layout()
     plt.show()
 
 except Exception as e:
