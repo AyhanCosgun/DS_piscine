@@ -27,7 +27,8 @@ try:
     plt.pie(
         counts,
         labels=event_types,
-        autopct="%1.1f%%"
+        autopct="%1.1f%%",
+        explode=[0.003] * len(event_types)
     )
     plt.title("Distribution of Customer Events")
     plt.tight_layout()
