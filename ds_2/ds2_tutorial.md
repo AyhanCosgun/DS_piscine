@@ -920,8 +920,11 @@ plt.pie(
 - **Hangi Durumlarda Hayat Kurtarır?**  
   Özellikle Ex01, Ex02 ve Ex03'te yan yana 2 veya 3 alt grafik (`plt.subplots(1, 3)`) çizdirdiğimizde grafiklerin eksen yazılarının birbirinin üstüne binmesini engellemek için **zorunlu bir sektörel standarttır**.
 
+---
 
   # 12. Ex01 Soru ve Cevapları
+
+---
 
 ## Sorgumuz
 
