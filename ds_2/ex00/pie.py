@@ -28,9 +28,10 @@ try:
         counts,
         labels=event_types,
         autopct="%1.1f%%",
-        explode=[0.003] * len(event_types)
+        explode=[0.003] * len(event_types),
+        textprops={"fontsize": 18}
     )
-    plt.title("Distribution of Customer Events")
+    plt.title("Distribution of Customer Events", fontsize=20)
     plt.tight_layout()
     plt.show()
 
