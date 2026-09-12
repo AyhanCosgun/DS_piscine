@@ -17,6 +17,8 @@ Bu rehber, **42 Data Science Piscine** modüllerinden **DS_2 (Data Viz)** projes
 9. [Adım Adım DS_2 Yol Haritası ve Kod İskeletleri](#9-adım-adım-ds_2-yol-haritası-ve-kod-iskeletleri)
 10. [Peer-Evaluation (Savunma) Taktikleri](#10-peer-evaluation-savunma-taktikleri)
 11. [Ex00 Soru ve Cevapları](#11-ex00-soru-ve-cevapları)
+12. [Ex01 Soru ve Cevapları](#12-ex01-soru-ve-cevapları)
+13. [Ex02 Soru ve Cevapları](#13-ex02-soru-ve-cevapları)
 
 ---
 
@@ -1627,4 +1629,359 @@ Oluşan sonuçları hangi sırada göstereceğini belirler.
 
 Bu ayrımı oturttuğunda sorgunun tamamını okumak çok daha kolay hale gelir.
 
+---
 
+# 13. Ex02 Soru ve Cevapları
+
+---
+
+## Genel Bakış: Exercise 02 — "My beautiful mustache" (`mustache.*`)
+
+Ecole 42 müfredatında bu egzersize esprili bir dille *"My beautiful mustache"* denmesinin sebebi, Fransızcada Kutu-Bıyık Grafiğine (Box Plot) **"Boîte à moustaches"** denmesidir. Kutu grafiğinin iki yanından uzanan çizgilere Türkçede ve Fransızcada "bıyık" (İngilizcede *whisker*) denir.
+
+Bu egzersizde iki ana ister vardır:
+1. **Konsola İstatistik Tablosu Yazdırmak:** Satın alınan ürünlerin fiyatlarının (`price`) istatistiksel özetini (`count`, `mean`, `std`, `min`, `25%`, `50%`, `75%`, `max`) ekrana basmak.
+2. **Kutu-Bıyık Grafikleri Çizdirmek:** Subject PDF'inde (Sayfa 7 ve 8) gösterilen **3 adet box plot** grafiğini oluşturmak.
+
+```text
+Ekrana Basılacak İstatistik Çıktısı (Örnek):
+count     741644.000000
+mean           5.575068
+std           10.264594
+min          -79.370000
+25%            1.590000
+50%            3.330000
+75%            6.030000
+max          327.780000
+```
+
+---
+
+## Soru 1: Beklenen 3 Grafik Nedir, Hangi Veriler Süzülmelidir ve Nasıl Okunur?
+
+### 1.1. Grafiklerin Kimliği ve Görev Dağılımı
+
+Subject PDF'inin 8. sayfasında dikey olarak sıralanmış **3 farklı kutu grafiği** yer alır:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  Grafik 1: Ham Ürün Fiyatları Box Plot (Tüm Aykırı Değerler Dahil)     │
+│  [X Ekseni: -50 ... 300+ A] ── Yüzlerce aykırı nokta ve aşırı dar kutu │
+├────────────────────────────────────────────────────────────────────────┤
+│  Grafik 2: Yakınlaştırılmış Ürün Fiyatları Box Plot (showfliers=False) │
+│  [X Ekseni: 0 ... 13 A] ───── Aykırı noktalar gizlenmiş, kutu net      │
+├────────────────────────────────────────────────────────────────────────┤
+│  Grafik 3: Kullanıcı Başına Ortalama Sepet Tutarı (Average Basket)     │
+│  [X Ekseni: 28 ... 42 A] ──── Kullanıcı bazında ortalama sepet büyüklüğü│
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 1.2. Hangi Veriler Süzülmeli ve Nasıl Çekilmeli?
+
+#### A) Grafik 1 ve Grafik 2 İçin Veri Filtresi:
+Burada incelenen birim **tekil ürün fiyatıdır (`price`)**. Sadece satın alma yapılan kayıtlar alınmalıdır:
+```sql
+SELECT price 
+FROM customers 
+WHERE event_type = 'purchase';
+```
+- **Kayıt Sayısı:** Yaklaşık 700 bin - 1.5 milyon satır.
+- **Tek Kolon:** Sadece `price` kolonunu çekmek RAM'i korur ve işlemi saniyeler içinde bitirir.
+
+#### B) Grafik 3 İçin Veri Filtresi ve Sepet Hesabı:
+Burada incelenen birim ürün fiyatı **DEĞİLDİR**. İki kademeli bir müşteri metriğidir:
+1. **1. Kademe (Oturum / Sepet Tutarı):** Bir kullanıcının aynı oturumda (`user_session`) satın aldığı tüm ürünlerin fiyat toplamı:
+   $$\text{Session Total} = \sum \text{price}$$
+2. **2. Kademe (Kullanıcı Ortalaması):** O kullanıcının yaptığı tüm sepetlerin ortalaması:
+   $$\text{Average Basket} = \text{AVG}(\text{Session Total})$$
+
+Bunu Python'da milyonlarca satırla yapmak yerine PostgreSQL motorunda tek sorguda hesaplatıp Python'a yalnızca kullanıcı başı 1 satır çekiyoruz:
+```sql
+SELECT user_id, AVG(session_total) AS avg_basket
+FROM (
+    SELECT user_id, user_session, SUM(price) AS session_total
+    FROM customers
+    WHERE event_type = 'purchase'
+    GROUP BY user_id, user_session
+) session_baskets
+GROUP BY user_id;
+```
+
+---
+
+### 1.3. Bu Grafikler Nasıl Okunur? (Data Sense & İş Yorumu)
+
+Bir Box Plot'un anatomisini bilmek, verinin DNA'sını okumak demektir:
+
+```text
+                  Alt Bıyık           Q1       Medyan       Q3           Üst Bıyık
+                     ├───[             │          │          ]──────────────┤         ♦   ♦  ♦ (Outliers)
+                     │                 │          │          │              │
+Değerler:           0 A              1.59 A     3.33 A     6.03 A        12.69 A     50 A ... 327 A
+                                       └──────────┴──────────┘
+                                                 IQR
+                                          (Verinin %50'si)
+```
+
+#### Grafik 1'in Yorumu (Ham Veri & Anomaliler):
+- Kutu sıfırın hemen sağında incecik bir dikey çizgi gibi kalmıştır. Sağa doğru yüzlerce elmas (nokta) uzanır.
+- **Veri Bilimci Yorumu:** *"Veride korkunç bir sağa çarpıklık (right-skewness) ve uç değer yoğunluğu var. Ürünlerin yarısı 1.59 ile 6.03 A arasında iken, 300+ A değerinde lüks/pahalı ürünler grafiğin ölçeğini patlatmış. Ayrıca sol tarafta -79.37 A gibi negatif değerler var; bunlar muhtemelen muhasebe iadeleri veya sistemsel veri kirliliğidir."*
+
+#### Grafik 2'nin Yorumu (Temizlenmiş / Yakınlaştırılmış Kutu):
+- Aykırı değerler `showfliers=False` parametresi ile gizlendiğinde kutu ekrana tam oturur (0 - 13 A aralığı).
+- **Veri Bilimci Yorumu:**
+  - **Medyan (3.33 A):** Satın alınan ürünlerin tam yarısı 3.33 A'dan daha ucuzdur!
+  - **IQR (1.59 - 6.03 A):** Standart bir müşterinin sepetine attığı ürünlerin orta %50'lik dilimi 1.59 A ile 6.03 A arasındadır. E-ticaret platformu ağırlıklı olarak ucuz/hızlı tüketim ürünleri satmaktadır.
+  - **Medyan Çizgisi:** Kutunun tam ortasında değil, soluna (1.59'a) daha yakındır. Bu da dağılımın asimetrik ve sağa çarpık olduğunu matematiksel olarak doğrular.
+
+#### Grafik 3'ün Yorumu (Ortalama Sepet Tutarı - Average Basket Price):
+- X ekseni 28 ile 42 A arasındadır.
+- **İş Zekası (BI) Yorumu:**
+  - Tek tek ürünlerin medyan fiyatı 3.33 A olmasına rağmen, ortalama sepet büyüklüğü **~33 A** civarındadır!
+  - **Çıkarım:** Müşteriler tek bir ürün alıp çıkmamaktadır; her bir alışveriş oturumunda ortalama **8 ila 10 adet ürün** satın almaktadır. Bu metrik (AOV - Average Order Value), e-ticaret sitelerinde çapraz satış (cross-selling) başarısının en net göstergesidir.
+
+---
+
+## Soru 2: IQR Metodu, Matematiksel Altyapısı ve Terminoloji
+
+### 2.1. Terminoloji Sözlüğü
+
+1. **Normal Dağılım (Gaussian / Bell Curve):**
+   - Evrende boy uzunluğu, ölçüm hataları, IQ skorları gibi birçok rastgele olayın oluşturduğu simetrik, çan biçimindeki dağılımdır.
+   - Tepe noktasında **Ortalama = Medyan = Mod** birbirine eşittir.
+   - **Empirik Kural (68 - 95 - 99.7 Kuralı):**
+     - Verilerin %68.27'si $\mu \pm 1\sigma$ aralığındadır.
+     - Verilerin %95.45'i $\mu \pm 2\sigma$ aralığındadır.
+     - Verilerin %99.73'ü $\mu \pm 3\sigma$ aralığındadır.
+   - *Önemli Not:* E-ticaret fiyatları, maaşlar ve tıklama sayıları **asla normal dağılmaz!** Bunlar sağa çarpıktır (Power-law / Pareto / Log-Normal). Bu yüzden bu verilerde standart sapma ve ortalama yerine **Medyan ve IQR** kullanılır.
+
+2. **Çeyreklikler (Quartiles - $Q_1, Q_2, Q_3$):**
+   - Sıralanmış bir veri setini 4 eşit dilime bölen üç kesim noktasıdır:
+     - **$Q_1$ (Birinci Çeyreklik - 25. Yüzdelik):** Verinin en küçük %25'lik kısmının tavanı.
+     - **$Q_2$ (İkinci Çeyreklik - Medyan - 50. Yüzdelik):** Veriyi tam ortadan ikiye bölen değer.
+     - **$Q_3$ (Üçüncü Çeyreklik - 75. Yüzdelik):** Verinin en küçük %75'lik kısmının tavanı.
+
+3. **IQR (Interquartile Range - Çeyrekler Açıklığı):**
+   - **Açılımı:** *Interquartile Range*.
+   - **Formülü:**
+     $$IQR = Q_3 - Q_1$$
+   - Verinin en ortasında yer alan ana gövdenin (%50'lik çekirdeğin) genişliğini ölçer.
+   - **Neden Güçlüdür (Robust)?** En uçtaki %25'lik zengin veya fakir kesimden hiç etkilenmez. Milyar dolarlık bir ürün girse bile IQR değişmez!
+
+4. **Marjinler / Bıyıklar (Whiskers / Fences):**
+   - Kutunun sağından ve solundan dışarı doğru uzanan yatay çizgilerdir. İstatistikte bunlara **"Çit" (Fence)** denir.
+   - Verinin "makul ve kabul edilebilir sınırlarını" temsil ederler.
+   - **Alt Sınır (Lower Fence):** $Q_1 - 1.5 \times IQR$
+   - **Üst Sınır (Upper Fence):** $Q_3 + 1.5 \times IQR$
+
+---
+
+### 2.2. Neden 1.5 Katsayısı? Matematiksel Kanıtı Nedir?
+
+Bu kuralı 1977 yılında modern veri analitiğinin kurucusu kabul edilen ünlü matematikçi ve istatistikçi **John Tukey** ortaya koymuştur.
+
+"Neden 1 veya 2 değil de tam olarak 1.5?" sorusunun arkasında harika bir matematiksel mantık yatar:
+
+#### Adım Adım Matematiksel Türetim:
+Varsayalım ki elimizde ortalaması $\mu$ ve standart sapması $\sigma$ olan mükemmel bir **Standart Normal Dağılım** var.
+
+1. Normal dağılım tablosundan (Z-Tablosu) çeyrekliklerin standart sapma karşılıklarına bakalım:
+   $$Q_1 \approx \mu - 0.6745\sigma$$
+   $$Q_3 \approx \mu + 0.6745\sigma$$
+
+2. Buradan $IQR$ değerini $\sigma$ cinsinden hesaplayalım:
+   $$IQR = Q_3 - Q_1 = (\mu + 0.6745\sigma) - (\mu - 0.6745\sigma) \approx 1.349\sigma$$
+
+3. Şimdi Tukey'nin $1.5 \times IQR$ marjını $\sigma$ cinsinden bulalım:
+   $$1.5 \times IQR = 1.5 \times 1.349\sigma \approx 2.0235\sigma$$
+
+4. Şimdi üst ve alt sınırları (çitleri) hesaplayalım:
+   $$\text{Üst Sınır} = Q_3 + 1.5 \times IQR = (\mu + 0.6745\sigma) + 2.0235\sigma = \mu + 2.698\sigma \approx \mu + 2.7\sigma$$
+   $$\text{Alt Sınır} = Q_1 - 1.5 \times IQR = (\mu - 0.6745\sigma) - 2.0235\sigma = \mu - 2.698\sigma \approx \mu - 2.7\sigma$$
+
+5. **Kritik Sonuç:**
+   - Normal dağılımda $[\mu - 2.7\sigma, \mu + 2.7\sigma]$ aralığı, verilerin tam **%99.3'ünü** içine alır!
+   - Bu sınırların dışına taşan alan toplamda yalnızca **%0.7 (yaklaşık binde 7)** kadardır.
+   - Yani John Tukey $1.5$ katsayısını seçerek şunu garanti altına almıştır:
+     > *"Eğer veri normal bir seyir izliyorsa, kazara 'normal' bir veriyi 'aykırı' sanma (False Positive) ihtimalimiz binde 7 gibi ihmal edilebilir bir seviyede kalsın. Böylece sadece gerçekten şüpheli ve ekstrem olan değerler bıyıkların dışına taşsın."*
+
+#### Neden 1.0 veya 2.0 Değil?
+- **Eğer 1.0 seçilseydi:** Sınırlar $\mu \pm 2\sigma$ seviyesine inerdi. Normal dağılımda verinin %5'i dışarıda kalır ve yüzlerce masum/normal veri yanlışlıkla aykırı ilan edilirdi.
+- **Eğer 2.0 seçilseydi:** Sınırlar $\mu \pm 3.4\sigma$ seviyesine çıkardı. Bu sefer çitler o kadar gevşek olurdu ki işletmeyi batırabilecek gerçek aykırı değerler tespit edilemezdi.
+
+---
+
+### 2.3. Sınırlar Sabit midir? Başka Yaklaşımlar Var mıdır?
+
+Hayır, $1.5 \times IQR$ ilahi bir kanun değildir; istatistiksel bir sezgisel kuraldır (heuristic). Literatürde ve sektörde duruma göre kullanılan diğer yaklaşımlar:
+
+1. **Aşırı Aykırı Değerler İçin Tukey'nin 3.0 Kuralı (Extreme Outliers):**
+   $$\text{Dış Sınır (Outer Fence)} = Q_3 + 3.0 \times IQR$$
+   $1.5 \times IQR$ ile $3.0 \times IQR$ arasına düşenlere **"Hafif Aykırı" (Mild Outlier)**, $3.0 \times IQR$'ın ötesine geçenlere ise **"Aşırı Aykırı" (Extreme Outlier)** denir.
+
+2. **Z-Skoru Yöntemi (Z-Score):**
+   - Veri normal dağılıma yakınsa kullanılır: $Z = \frac{x - \mu}{\sigma}$.
+   - Genellikle $|Z| > 3$ olan değerler aykırı kabul edilir.
+
+3. **Yüzdelik Dilim Kırpma (Percentile Trimming / Winsorization):**
+   - Doğrudan en alttaki %1 ve en üstteki %99'luk dilimin dışı filtrelenir veya sınırlara eşitlenir.
+
+4. **Makine Öğrenimi Tabanlı Yöntemler:**
+   - Çok boyutlu (çok değişkenli) aykırı değer tespiti için **Isolation Forest**, **Local Outlier Factor (LOF)** veya **DBSCAN** kümeleme algoritması kullanılır.
+
+---
+
+## Soru 3: Seaborn Grafik Çeşitleri, Tanıtımları ve Örnek Kodlar
+
+Bu 3 grafiğin tamamı Seaborn kütüphanesinin `sns.boxplot()` fonksiyonu ile çizilir.
+
+### 3.1. `sns.boxplot` Fonksiyonunun Temel Anatomisi
+
+```python
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Temel parametreler:
+sns.boxplot(
+    data=df,              # Kullanılacak DataFrame (opsiyonel)
+    x="price",            # Yatay eksene verilecek kolon adı veya doğrudan seri
+    color="skyblue",      # Kutunun dolgu rengi
+    showfliers=True,      # True: Aykırı noktaları gösterir | False: Gizler
+    whis=1.5,             # Bıyık uzunluğu katsayısı (varsayılan 1.5 x IQR)
+    width=0.4             # Kutunun et kalınlığı (0-1 arası)
+)
+```
+
+- **Dikey vs. Yatay Çizim:**
+  - Yatay kutu için: `sns.boxplot(x=df["price"])`
+  - Dikey kutu için: `sns.boxplot(y=df["price"])`
+- **`showfliers=False`:**
+  Grafik 2'de olduğu gibi aykırı noktaları gizleyip grafiği sadece bıyıkların arasına odaklamak için kullanılır.
+
+---
+
+### 3.2. Dağılım İncelemede Kullanılan Diğer Seaborn Grafikleri
+
+Veri biliminde kutu grafiğinin eksik kaldığı yerleri tamamlayan kardeş grafikler vardır:
+
+```
+┌──────────────────┬──────────────────────────────────────────┬─────────────────────────────┐
+│ Grafik Türü      │ Seaborn Fonksiyonu                       │ Ne İşe Yarar?               │
+├──────────────────┼──────────────────────────────────────────┼─────────────────────────────┤
+│ **Box Plot**     │ `sns.boxplot(x=...)`                     │ Çeyreklikler, IQR, Outlier  │
+│ **Violin Plot**  │ `sns.violinplot(x=...)`                  │ Boxplot + Olasılık Yoğunluğu│
+│ **Histogram/KDE**│ `sns.histplot(x=..., kde=True)`          │ Frekans, Tepe Noktaları     │
+│ **Strip Plot**   │ `sns.stripplot(x=..., jitter=True)`      │ Her bir veriyi nokta basar  │
+└──────────────────┴──────────────────────────────────────────┴─────────────────────────────┘
+```
+
+#### Deneyebileceğiniz Hızlı Kod Örnekleri:
+
+```python
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# 1. Sentetik bir e-ticaret fiyat verisi üretelim (sağa çarpık)
+np.random.seed(42)
+prices = np.concatenate([
+    np.random.gamma(shape=2, scale=2, size=500),  # Çoğunluk 2 - 10 TL arası
+    [50, 75, 120, 200]                             # Birkaç büyük aykırı değer
+])
+df_demo = pd.DataFrame({"price": prices})
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+# Örnek 1: Klasik Boxplot
+sns.boxplot(x=df_demo["price"], ax=axes[0], color="skyblue")
+axes[0].set_title("1. Standart Boxplot (Aykırılar Açık)")
+
+# Örnek 2: showfliers=False Boxplot (Ex02 Grafik 2)
+sns.boxplot(x=df_demo["price"], ax=axes[1], color="mediumseagreen", showfliers=False)
+axes[1].set_title("2. Zoomed Boxplot (showfliers=False)")
+
+# Örnek 3: Violin Plot (Keman Grafiği)
+sns.violinplot(x=df_demo["price"], ax=axes[2], color="salmon")
+axes[2].set_title("3. Violin Plot (Yoğunluk Dağılımı)")
+
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+## Ex02: `mustache.py` İçin Tam ve Kusursuz Çözüm Kodu
+
+Aşağıdaki kod, subject'te istenen `describe()` tablosunu konsola yazdırır ve ardışık olarak PDF Sayfa 8'deki **3 box plot'u** oluşturur:
+
+```python
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from sqlalchemy import create_engine
+
+# 1. Veritabanı bağlantısı
+engine = create_engine(
+    "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds"
+)
+
+try:
+    with engine.connect() as conn:
+        # Sorgu A: Tekil satın alınan ürün fiyatları
+        query_prices = """
+            SELECT price 
+            FROM customers 
+            WHERE event_type = 'purchase';
+        """
+        df_prices = pd.read_sql(query_prices, conn)
+
+        # Sorgu B: Kullanıcı bazında ortalama sepet tutarı
+        query_basket = """
+            SELECT user_id, AVG(session_total) AS avg_basket
+            FROM (
+                SELECT user_id, user_session, SUM(price) AS session_total
+                FROM customers
+                WHERE event_type = 'purchase'
+                GROUP BY user_id, user_session
+            ) session_baskets
+            GROUP BY user_id;
+        """
+        df_basket = pd.read_sql(query_basket, conn)
+
+    # 2. İstenen İstatistiksel Özeti Konsola Yazdır
+    print(df_prices["price"].describe())
+
+    # 3. Grafik Stili (Subject ile tam uyumlu açık gri arka plan ızgarası)
+    sns.set_theme(style="darkgrid")
+
+    # 4. Alt alta 3 grafik alanı oluştur
+    fig, axes = plt.subplots(3, 1, figsize=(8, 12))
+
+    # Grafik 1: Ham Ürün Fiyatları (Tüm aykırı değerler dahil)
+    sns.boxplot(ax=axes[0], x=df_prices["price"], color="#7285A5", fliersize=3)
+    axes[0].set_xlabel("price")
+
+    # Grafik 2: Odaklanmış Ürün Fiyatları (Aykırı değerler gizlenmiş)
+    sns.boxplot(ax=axes[1], x=df_prices["price"], color="#68B478", showfliers=False)
+    axes[1].set_xlabel("price")
+
+    # Grafik 3: Kullanıcı Başına Ortalama Sepet Tutarı
+    sns.boxplot(ax=axes[2], x=df_basket["avg_basket"], color="#64A0C8", fliersize=3)
+    axes[2].set_xlabel("price")
+    axes[2].set_title("average basket price per user", pad=15)
+
+    plt.tight_layout()
+    plt.show()
+
+except Exception as e:
+    print(f"Hata oluştu: {e}")
+    raise
+```
+
+Bu yapı sayesinde:
+- 16+ milyon satır yerine doğrudan filtrelenmiş verilerle RAM şişmeden hızlıca çalışır.
+- Subject'te verilen örnek görsellerle piksellerine kadar uyumlu 3 kutu grafiği çizilir.
+- Değerlendirme sırasında evaluator tüm istatistikleri ve grafik dönüşümlerini tek bir komutla (`python3 mustache.py`) doğrular.

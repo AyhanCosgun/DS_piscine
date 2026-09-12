@@ -1,118 +1,61 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
 import seaborn as sns
-import matplotlib.dates as mdates
-from matplotlib import font_manager
-from matplotlib.font_manager import FontProperties
+from sqlalchemy import create_engine
 
-font_path = font_manager.findfont("Lato")
-currency_font = FontProperties(fname=font_path)
+# ── 1. Veritabanı bağlantısı ────────────────────────────────────────────────
+engine = create_engine(
+    "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds"
+)
 
-engine: Engine = create_engine(
-    "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
-
-query = """
-    SELECT price FROM customers WHERE event_type = 'purchase';
-    """
 try:
-    with engine.connect() as connection:
-        df = pd.read_sql(query, connection)
+    with engine.connect() as conn:
+        # Sorgu A: Tekil satın alınan ürün fiyatları (Grafik 1 & 2 için)
+        query_prices = """
+            SELECT price 
+            FROM customers 
+            WHERE event_type = 'purchase';
+        """
+        df_prices = pd.read_sql(query_prices, conn)
 
-    print("DataFrames created successfully.")
-    print(df[["price"]].describe())
+        # Sorgu B: Kullanıcı bazında ortalama sepet tutarı (Grafik 3 için)
+        query_basket = """
+            SELECT user_id, AVG(session_total) AS avg_basket
+            FROM (
+                SELECT user_id, user_session, SUM(price) AS session_total
+                FROM customers
+                WHERE event_type = 'purchase'
+                GROUP BY user_id, user_session
+            ) session_baskets
+            GROUP BY user_id;
+        """
+        df_basket = pd.read_sql(query_basket, conn)
+
+    # ── 2. İstenen İstatistiksel Özeti Konsola Yazdır ──────────────────────
+    print(df_prices["price"].describe())
+
+    # ── 3. Grafik Stili (Subject ile tam uyumlu tema) ──────────────────────
+    sns.set_theme(style="darkgrid")
+
+    # ── 4. Subject PDF Sayfa 8'deki 3 Box Plot (Alt Alta) ─────────────────
+    fig, axes = plt.subplots(3, 1, figsize=(8, 12))
+
+    # Grafik 1: Ham Ürün Fiyatları (Tüm aykırı değerler / fliers dahil)
+    sns.boxplot(ax=axes[0], x=df_prices["price"], color="#7285A5", fliersize=3)
+    axes[0].set_xlabel("price")
+
+    # Grafik 2: Odaklanmış Ürün Fiyatları (Aykırı değerler gizlenmiş)
+    sns.boxplot(ax=axes[1], x=df_prices["price"], color="#68B478", showfliers=False)
+    axes[1].set_xlabel("price")
+
+    # Grafik 3: Kullanıcı Başına Ortalama Sepet Tutarı
+    sns.boxplot(ax=axes[2], x=df_basket["avg_basket"], color="#64A0C8", fliersize=3)
+    axes[2].set_xlabel("price")
+    axes[2].set_title("average basket price per user", pad=15)
+
+    plt.tight_layout()
+    plt.show()
 
 except Exception as e:
-    print(f"An error occurred connecting to the database: {e}")
-    exit(1)
-
-# sns.set_theme()
-
-# # First chart: Daily Customer Count
-# plt.figure(figsize=(10, 8))
-# plt.title("Daily Customer Count", fontsize=18)
-# sns.lineplot(
-#     data=df_daily,
-#     x="day_date",
-#     y="customer_count"
-#     )
-# plt.xlim(df_daily["day_date"].min(), df_daily["day_date"].max())
-# plt.xlabel("")
-# plt.ylabel("Number of customers", fontsize=16)
-# plt.xticks(fontsize=14)
-# plt.yticks(fontsize=14)
-# plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
-# plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%b"))
-# plt.tight_layout()
-# plt.show()
-
-# # Second chart: Monthly Sales
-# plt.figure(figsize=(10, 8))
-# plt.title("Monthly Sales", fontsize=18)
-# sns.barplot(
-#     data=df_monthly,
-#     x="month",
-#     y="total_sales_mil",
-#     color="lightsteelblue"
-#     )
-# plt.xticks(fontsize=14)
-# plt.yticks(fontsize=14)
-# plt.xlabel("month", fontsize=16)
-# plt.ylabel("total sales in million of ₳",
-#            fontsize=16, fontproperties=currency_font)
-# plt.tight_layout()
-# plt.show()
-
-# # Third chart: Daily Average Spend per Customer
-# plt.figure(figsize=(10, 8))
-# plt.title("Daily Average Spend per Customer", fontsize=18)
-# sns.lineplot(
-#     data=df_daily,
-#     x="day_date",
-#     y="avg_spend_per_customer",
-#     color="lightsteelblue"
-#     )
-# plt.xlim(df_daily["day_date"].min(), df_daily["day_date"].max())
-# plt.xlabel("")
-# plt.ylabel("average spend / customers in ₳",
-#            fontsize=16, fontproperties=currency_font)
-# plt.xticks(fontsize=14)
-# plt.yticks(fontsize=14)
-# plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
-# plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%b"))
-# plt.fill_between(
-#     "day_date",
-#     "avg_spend_per_customer",
-#     data=df_daily,
-#     color="lightsteelblue",
-# )
-# plt.tight_layout()
-# plt.show()
-
-
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
-# 1. Item Price Box Plot
-sns.boxplot(ax=axes[0], x=df["price"], color="skyblue")
-axes[0].set_title("Purchased Item Prices")
-axes[0].set_xlabel("Price (Altairian Dollars)")
-
-# 2. User Average Basket Price Box Plot
-basket_df = pd.read_sql("""
-    SELECT user_id, AVG(session_total) as avg_basket
-    FROM (
-        SELECT user_id, user_session, SUM(price) as session_total
-        FROM customers
-        WHERE event_type = 'purchase'
-        GROUP BY user_id, user_session
-    ) t
-    GROUP BY user_id;
-""", engine)
-
-sns.boxplot(ax=axes[1], x=basket_df["avg_basket"], color="lightgreen")
-axes[1].set_title("Average Basket Price per User")
-axes[1].set_xlabel("Basket Price (Altairian Dollars)")
-
-plt.tight_layout()
-plt.show()
+    print(f"Hata oluştu: {e}")
+    raise
