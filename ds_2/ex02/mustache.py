@@ -2,60 +2,66 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 
-# ── 1. Veritabanı bağlantısı ────────────────────────────────────────────────
-engine = create_engine(
-    "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds"
-)
+engine: Engine = create_engine(
+    "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
+
+query_prices = """
+    SELECT price 
+    FROM customers 
+    WHERE event_type = 'purchase';
+    """
+query_av_basket = """
+    SELECT user_id, AVG(session_total) AS avg_basket
+    FROM (
+        SELECT user_id, user_session, SUM(price) AS session_total
+        FROM customers
+        WHERE event_type = 'purchase'
+        GROUP BY user_id, user_session
+    ) AS session_totals
+    GROUP BY user_id;
+        """
 
 try:
-    with engine.connect() as conn:
-        # Sorgu A: Tekil satın alınan ürün fiyatları (Grafik 1 & 2 için)
-        query_prices = """
-            SELECT price 
-            FROM customers 
-            WHERE event_type = 'purchase';
-        """
-        df_prices = pd.read_sql(query_prices, conn)
+    with engine.connect() as connection:
+        df_prices = pd.read_sql(query_prices, connection)
+        df_basket = pd.read_sql(query_av_basket, connection)
 
-        # Sorgu B: Kullanıcı bazında ortalama sepet tutarı (Grafik 3 için)
-        query_basket = """
-            SELECT user_id, AVG(session_total) AS avg_basket
-            FROM (
-                SELECT user_id, user_session, SUM(price) AS session_total
-                FROM customers
-                WHERE event_type = 'purchase'
-                GROUP BY user_id, user_session
-            ) session_baskets
-            GROUP BY user_id;
-        """
-        df_basket = pd.read_sql(query_basket, conn)
+    print("DataFrames created successfully.")
 
-    # ── 2. İstenen İstatistiksel Özeti Konsola Yazdır ──────────────────────
-    print(df_prices["price"].describe())
-
-    # ── 3. Grafik Stili (Subject ile tam uyumlu tema) ──────────────────────
-    sns.set_theme(style="darkgrid")
-
-    # ── 4. Subject PDF Sayfa 8'deki 3 Box Plot (Alt Alta) ─────────────────
-    fig, axes = plt.subplots(3, 1, figsize=(8, 12))
-
-    # Grafik 1: Ham Ürün Fiyatları (Tüm aykırı değerler / fliers dahil)
-    sns.boxplot(ax=axes[0], x=df_prices["price"], color="#7285A5", fliersize=3)
-    axes[0].set_xlabel("price")
-
-    # Grafik 2: Odaklanmış Ürün Fiyatları (Aykırı değerler gizlenmiş)
-    sns.boxplot(ax=axes[1], x=df_prices["price"], color="#68B478", showfliers=False)
-    axes[1].set_xlabel("price")
-
-    # Grafik 3: Kullanıcı Başına Ortalama Sepet Tutarı
-    sns.boxplot(ax=axes[2], x=df_basket["avg_basket"], color="#64A0C8", fliersize=3)
-    axes[2].set_xlabel("price")
-    axes[2].set_title("average basket price per user", pad=15)
-
-    plt.tight_layout()
-    plt.show()
+    print(df_prices.head())
+    print(df_basket.head())
 
 except Exception as e:
-    print(f"Hata oluştu: {e}")
-    raise
+    print(f"An error occurred connecting to the database: {e}")
+    exit(1)
+
+sns.set_theme()
+
+# First chart: Raw Product Prices (All Outliers / Fliers Included)
+plt.figure(figsize=(10, 8))
+plt.title("Raw Product Prices", fontsize=18)
+sns.boxplot(x=df_prices["price"], color="#7285A5", fliersize=10)
+plt.xlabel("price", fontsize=20)
+plt.xticks(fontsize=20)
+plt.tight_layout()
+plt.show()
+
+# Second chart: Adjusted Product Prices (Outliers Hidden)
+plt.figure(figsize=(10, 8))
+plt.title("Adjusted Product Prices", fontsize=18)
+sns.boxplot(x=df_prices["price"], color="#68B478", showfliers=False)
+plt.xlabel("price", fontsize=20)
+plt.xticks(fontsize=20)
+plt.tight_layout()
+plt.show()
+
+# Third chart: Average Basket Price per User
+plt.figure(figsize=(10, 8))
+plt.title("Average Basket Price per User", fontsize=18)
+sns.boxplot(x=df_basket["avg_basket"], color="#64A0C8", fliersize=10)
+plt.xlabel("")
+plt.xticks(fontsize=20)
+plt.tight_layout()
+plt.show()
