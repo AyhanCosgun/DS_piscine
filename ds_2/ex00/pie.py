@@ -9,7 +9,7 @@ engine: Engine = create_engine(
 query = """SELECT
     event_type,
     COUNT(*) AS event_count
-    FROM customers
+    FROM customers_old
     GROUP BY event_type
     ORDER BY event_count DESC;"""
 

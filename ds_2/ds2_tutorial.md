@@ -421,6 +421,13 @@ Subject PDF'sindeki Ex05 sayfalarında yer alan görselleri adım adım deşifre
 ## 9. Adım Adım DS_2 Yol Haritası ve Kod İskeletleri
 
 ### Adım 1: Python Sanal Ortamı ve Kütüphaneler
+Eğer kurulu değilse
+```bash
+sudo apt update
+sudo apt install python3-tk
+```
+
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate

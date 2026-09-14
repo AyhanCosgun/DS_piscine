@@ -6,16 +6,16 @@
 
 BEGIN;
 
-    DROP TABLE IF EXISTS customers_clean;
+    DROP TABLE IF EXISTS customers_old_clean;
 
-    CREATE TABLE customers_clean AS
+    CREATE TABLE customers_old_clean AS
         WITH ranked_events AS (
             SELECT *,
                 LAG(event_time) OVER (
                     PARTITION BY user_id, user_session, event_type, product_id, price
                     ORDER BY event_time
                 ) AS prev_event_time
-            FROM customers
+            FROM customers_old
         )
         SELECT
             event_time,
@@ -34,8 +34,8 @@ BEGIN;
         cleaned_count BIGINT;
         duplicate_count BIGINT;
     BEGIN
-        SELECT COUNT(*) INTO original_count FROM customers;
-        SELECT COUNT(*) INTO cleaned_count FROM customers_clean;
+        SELECT COUNT(*) INTO original_count FROM customers_old;
+        SELECT COUNT(*) INTO cleaned_count FROM customers_old_clean;
         duplicate_count := original_count - cleaned_count;
 
         RAISE NOTICE 'Original record count: %', original_count;
@@ -44,9 +44,9 @@ BEGIN;
 
     END $$;
 
-    DROP TABLE customers;
+    DROP TABLE customers_old;
 
-    ALTER TABLE customers_clean RENAME TO customers;
+    ALTER TABLE customers_old_clean RENAME TO customers_old;
 
 \echo '================================================================================'
 \echo 'Removing duplicates completed successfully.'
