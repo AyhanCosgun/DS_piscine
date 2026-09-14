@@ -1,12 +1,12 @@
 \echo '================================================================================'
-\echo 'Processing: customers_old_table.sql'
+\echo 'Processing: customers_table.sql'
 \echo '================================================================================'
 
 \set ON_ERROR_STOP on
 
 BEGIN;
 
-DROP TABLE IF EXISTS customers_old;
+DROP TABLE IF EXISTS customers;
 
 DO $$
 DECLARE
@@ -18,7 +18,7 @@ DECLARE
 BEGIN
 
     SELECT count(*), 
-           'CREATE TABLE customers_old AS ' || 
+           'CREATE TABLE customers AS ' || 
            string_agg('SELECT * FROM ' || quote_ident(tablename), ' UNION ALL ' ORDER BY tablename),
            'SELECT ' ||
            string_agg('(SELECT count(*) FROM ' || quote_ident(tablename) || ')', ' + ')
@@ -35,18 +35,18 @@ BEGIN
 
     EXECUTE v_merge_sql_command;
 
-    RAISE NOTICE '% tables merged into the "customers_old" table successfully.', v_table_count;
+    RAISE NOTICE '% tables merged into the "customers" table successfully.', v_table_count;
 
   
     RAISE NOTICE 'Calculating expected total record count from source tables...';
 
     EXECUTE v_control_sql_command INTO v_expected_total;
 
-    RAISE NOTICE 'Calculating observed total record count in the "customers_old" table...';
+    RAISE NOTICE 'Calculating observed total record count in the "customers" table...';
 
     SELECT count(*)
     INTO v_observed_total 
-    FROM customers_old;
+    FROM customers;
 
     RAISE NOTICE 'Expected total: %, Observed total: %',
       v_expected_total,

@@ -4,11 +4,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 import seaborn as sns
 import matplotlib.dates as mdates
-from matplotlib import font_manager
-from matplotlib.font_manager import FontProperties
-
-font_path = font_manager.findfont("Lato")
-currency_font = FontProperties(fname=font_path)
 
 engine: Engine = create_engine(
     "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
@@ -80,8 +75,7 @@ sns.barplot(
 plt.xticks(fontsize=14)
 plt.yticks(fontsize=14)
 plt.xlabel("month", fontsize=16)
-plt.ylabel("total sales in million of ₳",
-           fontsize=16, fontproperties=currency_font)
+plt.ylabel("total sales in million of ₳", fontsize=16)
 plt.tight_layout()
 plt.show()
 
@@ -96,8 +90,7 @@ sns.lineplot(
     )
 plt.xlim(df_daily["day_date"].min(), df_daily["day_date"].max())
 plt.xlabel("")
-plt.ylabel("average spend / customers in ₳",
-           fontsize=16, fontproperties=currency_font)
+plt.ylabel("average spend / customers in ₳", fontsize=16)
 plt.xticks(fontsize=14)
 plt.yticks(fontsize=14)
 plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
@@ -108,5 +101,15 @@ plt.fill_between(
     data=df_daily,
     color="lightsteelblue",
 )
+plt.tight_layout()
+plt.show()
+
+# Fourth chart: Average Basket Price per User
+plt.figure(figsize=(10, 8))
+plt.title("Average Basket Price per User", fontsize=18)
+sns.boxplot(x=df_daily["avg_spend_per_customer"], color="#64A0C8", fliersize=10, flierprops={"marker": "D"}, linewidth=3)
+plt.xlabel("")
+# plt.xlim(-20, 150)
+plt.xticks(fontsize=20)
 plt.tight_layout()
 plt.show()
