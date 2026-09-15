@@ -10,6 +10,7 @@ query = """SELECT
     event_type,
     COUNT(*) AS event_count
     FROM customers
+    where event_time >= '2022-10-01' AND event_time < '2023-03-01'
     GROUP BY event_type
     ORDER BY event_count DESC;"""
 

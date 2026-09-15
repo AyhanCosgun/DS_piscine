@@ -10,7 +10,8 @@ engine: Engine = create_engine(
 query_prices = """
     SELECT price
     FROM customers
-    WHERE event_type = 'purchase';
+    WHERE event_type = 'purchase'
+    AND event_time >= '2022-10-01' AND event_time < '2023-03-01'
     """
 query_av_basket = """
     SELECT user_id, AVG(session_total) AS avg_basket
@@ -18,6 +19,7 @@ query_av_basket = """
         SELECT user_id, user_session, SUM(price) AS session_total
         FROM customers
         WHERE event_type = 'purchase'
+        AND event_time >= '2022-10-01' AND event_time < '2023-03-01'
         GROUP BY user_id, user_session
     ) AS session_totals
     GROUP BY user_id;
