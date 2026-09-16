@@ -21,14 +21,43 @@ data = {
 }
 
 df = pd.DataFrame(data)
+print("############################## Customer RFM DataFrame ##############################")
 print(df)
+print("####################################################################################\n")
 
 scalar = StandardScaler()
 X_scaled_np_array = scalar.fit_transform(df[["R", "F", "M"]])
-X_scaled = df[["Customer"]].join(pd.DataFrame(X_scaled_np_array, columns=["R", "F", "M"]))
-print(X_scaled)
-print("X_scaled metrics:", X_scaled.describe().round(3))
 
+print("-"*50)
+
+kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+df["cluster"] = kmeans.fit_predict(X_scaled_np_array)
+cluster_summary = df.groupby("cluster")[["R", "F", "M"]].mean()
+print("Kümelerin Ortalama Değerleri:")
+print(cluster_summary.round)
+
+segment_names = {
+    2: "Loyal Customers",
+    1: "New Customers",
+    0: "Inactive Customers",
+    3: "Platinum VIP"
+}
+df["segment"] = df["cluster"].map(segment_names)
+print(df)
+
+print("-"*50)
+
+
+X_scaled = df[["Customer"]].join(pd.DataFrame(X_scaled_np_array, columns=["R", "F", "M"]))
+print("########################### Scaled Customer RFM DataFrame ##########################")
+print(X_scaled.round(2))
+print("####################################################################################\n")
+
+print("########################### X_scaled metrics #######################################")
+print(X_scaled.describe().head(3).round(2))
+print("####################################################################################\n")
+
+print("########################### KMeans Labels and Inertia ##############################")
 inertias = []
 K_range = range(4, 5)
 for k in K_range:
@@ -36,9 +65,15 @@ for k in K_range:
     kmeans.fit(X_scaled_np_array)
     inertias.append(kmeans.inertia_)
     print(f"K: {k}, Labels: ", kmeans.labels_)
-    print(f"K: {k}, Inertia:", kmeans.inertia_)
+    print(f"K: {k}, Inertia: {kmeans.inertia_:.2f}")
     #print(f"inertia change (abs): \33[92m{abs(inertias[-1] - inertias[-2]):.2f}\33[0m" if k > 1 else '\33[92m inertia change (abs): N/A \33[0m')
+print("####################################################################################\n")
 
+print("########################### KMeans Clusters #########################################")
 for i in set(kmeans.labels_):
     print(f"Cluster {i}: ", X_scaled[kmeans.labels_ == i]["Customer"].values)
+print("####################################################################################\n")
 
+print("########################### KMeans Cluster Centers ##################################")
+print(pd.DataFrame(scalar.inverse_transform(kmeans.cluster_centers_), columns=["R", "F", "M"]).round(2))
+print("####################################################################################\n")
