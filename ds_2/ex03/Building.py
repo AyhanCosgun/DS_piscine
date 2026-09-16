@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -13,12 +14,14 @@ query_fm = """
     sum(price) AS monetary
     FROM customers
     WHERE event_type = 'purchase'
-    AND event_time >= '2022-10-01' AND event_time < '2023-03-01'
+    AND event_time >= TIMESTAMPTZ '2022-10-01 00:00:00+00'
+    AND event_time <  TIMESTAMPTZ '2023-03-01 00:00:00+00'
     GROUP BY user_id;
     """
 
 try:
     with engine.connect() as connection:
+
         df_fm = pd.read_sql(query_fm, connection)
 
     print("DataFrames created successfully.")
@@ -63,39 +66,11 @@ axs[1].tick_params(axis='x', labelsize=20)
 axs[1].set_ylabel("customers", fontsize=20)
 axs[1].tick_params(axis='y', labelsize=20)
 
-# Kutu (Rectangle) nesnelerinden sınırları çekme
-patches = axs[1].patches
-
-print("--- KUTU SINIRLARI VE MÜŞTERİ SAYILARI ---")
-for i, patch in enumerate(patches):
-    x_start = patch.get_x()                  # Kutunun sol sınırı
-    width = patch.get_width()                # Kutu genişliği
-    x_end = x_start + width                  # Kutunun sağ sınırı
-    count = patch.get_height()               # Kutunun içine düşen müşteri sayısı
-    print(f"{i+1}. Kutu: [{x_start:.2f} ile {x_end:.2f}] aralığı -> Müşteri Sayısı: {int(count)}")
-
-# Her sütunun üzerine müşteri sayısını yazma
-# for p in axs[1].patches:
-#     height = p.get_height()  # Müşteri sayısı
-#     if height > 0:
-#         axs[1].annotate(
-#             f"{int(height)}",  # Yazılacak metin
-#             (
-#                 p.get_x() + p.get_width() / 2.0,
-#                 height,
-#             ),  # Metnin konumu (orta-üst)
-#             ha="center",
-#             va="bottom",
-#             fontsize=14,
-#         )
-
-import numpy as np
 counts, bin_edges = np.histogram(df_fm["monetary"], bins=5, range=(-25, 225))
-print("Kutu Sınır Noktaları:", bin_edges)
-print("Müşteri Sayıları:", counts)
-print("toplam müşteri sayısı:", counts.sum())
-print("toplam müşteri sayısı (df_fm):", df_fm["monetary"].count())
-# Çıktı örneği: [-25.   25.   75.  125.  175.  225.]
+print("Box boundaries:", bin_edges)
+print("Customer Counts:", counts)
+print("Customer Count in the histogram:", counts.sum())
+print("Total Customer Count (df_fm):", df_fm.shape[0])
 
-plt.tight_layout()
+plt.tight_layout(w_pad=10.0)
 plt.show()

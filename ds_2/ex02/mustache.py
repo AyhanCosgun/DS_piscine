@@ -11,7 +11,8 @@ query_prices = """
     SELECT price
     FROM customers
     WHERE event_type = 'purchase'
-    AND event_time >= '2022-10-01' AND event_time < '2023-03-01'
+    AND event_time >= TIMESTAMPTZ '2022-10-01 00:00:00+00'
+    AND event_time <  TIMESTAMPTZ '2023-03-01 00:00:00+00'
     """
 query_av_basket = """
     SELECT user_id, AVG(session_total) AS avg_basket
@@ -19,7 +20,8 @@ query_av_basket = """
         SELECT user_id, user_session, SUM(price) AS session_total
         FROM customers
         WHERE event_type = 'purchase'
-        AND event_time >= '2022-10-01' AND event_time < '2023-03-01'
+        AND event_time >= TIMESTAMPTZ '2022-10-01 00:00:00+00'
+        AND event_time <  TIMESTAMPTZ '2023-03-01 00:00:00+00'
         GROUP BY user_id, user_session
     ) AS session_totals
     GROUP BY user_id;
@@ -30,7 +32,8 @@ query_daily_av_spend = """
         (SUM(price) / COUNT(DISTINCT user_id)) AS avg_spend_per_customer
     FROM customers
     WHERE event_type = 'purchase'
-    AND event_time >= '2022-10-01' AND event_time < '2023-03-01'
+    AND event_time >= TIMESTAMPTZ '2022-10-01 00:00:00+00'
+    AND event_time <  TIMESTAMPTZ '2023-03-01 00:00:00+00'
     GROUP BY day_date
     ORDER BY day_date;
     """

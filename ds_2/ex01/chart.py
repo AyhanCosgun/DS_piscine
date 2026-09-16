@@ -15,7 +15,8 @@ query_daily = """
         (SUM(price) / COUNT(DISTINCT user_id)) AS avg_spend_per_customer
     FROM customers
     WHERE event_type = 'purchase'
-    AND event_time >= '2022-10-01' AND event_time < '2023-03-01'
+    AND event_time >= TIMESTAMPTZ '2022-10-01 00:00:00+00'
+    AND event_time <  TIMESTAMPTZ '2023-03-01 00:00:00+00'
     GROUP BY day_date
     ORDER BY day_date;
     """
@@ -25,7 +26,8 @@ query_monthly = """
         SUM(price) / 1000000 as total_sales_mil
     FROM customers
     WHERE event_type = 'purchase'
-    AND event_time >= '2022-10-01' AND event_time < '2023-03-01'
+    AND event_time >= TIMESTAMPTZ '2022-10-01 00:00:00+00'
+    AND event_time <  TIMESTAMPTZ '2023-03-01 00:00:00+00'
     GROUP BY DATE_TRUNC('month', event_time)
     ORDER BY DATE_TRUNC('month', event_time);
     """
