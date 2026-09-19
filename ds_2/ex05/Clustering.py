@@ -38,10 +38,23 @@ sns.set_theme()
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(df_rfm[["recency", "frequency", "monetary"]])
 
-kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
 df_rfm["cluster"] = kmeans.fit_predict(X_scaled)
 
-cluster_summary = df_rfm.groupby("cluster")[["recency", "frequency", "monetary"]].mean()
-print("Mean values by cluster:")
-print(cluster_summary)
+cluster_check = df_rfm.groupby("cluster").agg(
+    customers=("user_id", "size"),
+    recency_mean=("recency", "mean"),
+    recency_median=("recency", "median"),
+    frequency_mean=("frequency", "mean"),
+    frequency_median=("frequency", "median"),
+    monetary_mean=("monetary", "mean"),
+    monetary_median=("monetary", "median"),
+)
+print(cluster_check.round(2))
 
+segments = {
+    0: "inactive",
+    1: "Cluster 1",
+    2: "Cluster 2",
+    3: "Cluster 3",
+}
