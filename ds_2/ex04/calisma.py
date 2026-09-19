@@ -12,6 +12,15 @@ from sklearn.preprocessing import StandardScaler
 # Etiketsiz (unsupervised) örnek: müşterileri RFM benzerliğine göre ayırmak
 
 import pandas as pd
+import numpy as np
+
+np.set_printoptions(
+    precision=2,
+    suppress=True,
+    floatmode="fixed"
+)
+
+pd.options.display.float_format = "{:.2f}".format
 
 data = {
     "Customer": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10"],
@@ -27,6 +36,13 @@ print("#########################################################################
 
 scalar = StandardScaler()
 X_scaled_np_array = scalar.fit_transform(df[["R", "F", "M"]])
+print("########################### Scaled Customer RFM Numpy Array #########################")
+print(X_scaled_np_array)
+print("####################################################################################\n")
+
+print("########################### Inverse transformed Customer RFM Numpy Array ##########################")
+print(f"Inverse transformed:\n{scalar.inverse_transform(X_scaled_np_array)}")
+print("####################################################################################\n")
 
 print("-"*50)
 
@@ -34,7 +50,7 @@ kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
 df["cluster"] = kmeans.fit_predict(X_scaled_np_array)
 cluster_summary = df.groupby("cluster")[["R", "F", "M"]].mean()
 print("Kümelerin Ortalama Değerleri:")
-print(cluster_summary.round)
+print(cluster_summary)
 
 segment_names = {
     2: "Loyal Customers",
@@ -50,11 +66,11 @@ print("-"*50)
 
 X_scaled = df[["Customer"]].join(pd.DataFrame(X_scaled_np_array, columns=["R", "F", "M"]))
 print("########################### Scaled Customer RFM DataFrame ##########################")
-print(X_scaled.round(2))
+print(X_scaled)
 print("####################################################################################\n")
 
 print("########################### X_scaled metrics #######################################")
-print(X_scaled.describe().head(3).round(2))
+print(X_scaled.describe().head(3))
 print("####################################################################################\n")
 
 print("########################### KMeans Labels and Inertia ##############################")
@@ -71,9 +87,10 @@ print("#########################################################################
 
 print("########################### KMeans Clusters #########################################")
 for i in set(kmeans.labels_):
-    print(f"Cluster {i}: ", X_scaled[kmeans.labels_ == i]["Customer"].values)
+    mask = kmeans.labels_ == i
+    print(f"Cluster {i}: ", X_scaled[mask]["Customer"].values)
 print("####################################################################################\n")
 
 print("########################### KMeans Cluster Centers ##################################")
-print(pd.DataFrame(scalar.inverse_transform(kmeans.cluster_centers_), columns=["R", "F", "M"]).round(2))
+print(pd.DataFrame(scalar.inverse_transform(kmeans.cluster_centers_), columns=["R", "F", "M"]))
 print("####################################################################################\n")
