@@ -370,5 +370,5 @@ inertias: her k için en iyi başlangıcın WCSS'i
         ▼
 elbow.png: marjinal kazancı ve makul k aralığını gör
 ```
-
+>
 Bu örnekte kritik matematiksel ayrım şudur: scaler verinin **geometrisini/mesafe ağırlıklarını** belirler; K-Means o geometri içinde, sabit `k` için WCSS'i yerel olarak azaltır; elbow ise `k` arttıkça zorunlu düşen WCSS'in **ne zaman azalan getiriye geçtiğini** yorumlamaya yarar.
