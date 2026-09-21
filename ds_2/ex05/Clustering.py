@@ -6,6 +6,7 @@ from sqlalchemy.engine import Engine
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from pathlib import Path
+from matplotlib.ticker import MultipleLocator, FuncFormatter
 
 engine: Engine = create_engine(
     "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
@@ -39,145 +40,190 @@ sns.set_theme()
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(df_rfm[["recency", "frequency", "monetary"]])
 
-kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
+kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
 df_rfm["cluster"] = kmeans.fit_predict(X_scaled)
 
 cluster_check = df_rfm.groupby("cluster").agg(
     customers=("user_id", "size"),
-    recency_mean=("recency", "mean"),
     recency_median=("recency", "median"),
-    frequency_mean=("frequency", "mean"),
     frequency_median=("frequency", "median"),
-    monetary_mean=("monetary", "mean"),
     monetary_median=("monetary", "median"),
+    revenue=("monetary", "sum"),
+    revenue_per_customer=("monetary", "mean"),
+    median_revenue=("monetary", "median"),
 )
+
+cluster_check["customer_share_pct"] = (
+    100 * cluster_check["customers"] / cluster_check["customers"].sum()
+)
+cluster_check["revenue_share_pct"] = (
+    100 * cluster_check["revenue"] / cluster_check["revenue"].sum()
+)
+cluster_check["revenue_index"] = (
+    cluster_check["revenue_per_customer"] / df_rfm["monetary"].mean()
+)
+
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", None)
+
 print(cluster_check.round(2),file=open("asd.txt", "w"))
 
 
-# Üretilecek PNG dosyalarının doğru klasöre yazılacağı yolu saklar.
 output_dir = Path(__file__).resolve().parent
 
-# K-Means numaralarını iş açısından okunabilir isimlere dönüştürür.
 segment_names = {
-    0: "Inactive / reactivation",        # Ortalama R çok yüksek olan eski müşteriler.
-    1: "Recent low-value / potential",   # Yeni olduğu kanıtlanmayan, düşük değerli yakın müşteri.
-    3: "Loyal - Silver",                 # Düzenli ve orta-yüksek değerli müşteri.
-    2: "Loyal - Gold/Platinum",          # En sık ve en yüksek harcamalı müşteri.
+    0: "Inactive / reactivation",      
+    1: "Recent low-value / potential",
+    3: "Loyal - Gold",
+    2: "Loyal - Platinum",
 }
 
-# Tüm tablolarda ve grafiklerde kullanılacak bilinçli sunum sırası.
-segment_order = list(segment_names.values())
-
-# Her segmentin bütün grafiklerde aynı kalacak rengi.
-# palette = {
-#     "Inactive / reactivation": "#D55E00",       # Turuncu-kırmızı: dikkat / risk.
-#     "Recent low-value / potential": "#56B4E9",  # Mavi: gelişim potansiyeli.
-#     "Loyal - Silver": "#7A7A7A",                # Gri: Silver.
-#     "Loyal - Gold/Platinum": "#E69F00",         # Altın: yüksek değer.
-# }
-
-# Her müşterinin cluster numarasından iş adı üretir.
 df_rfm["segment"] = df_rfm["cluster"].map(segment_names)
 
-from sklearn.metrics import silhouette_score
+segment_order = list(segment_names.values())
 
-print("k=5 silhouette:", round(silhouette_score(X_scaled, df_rfm["cluster"]), 3))
+sns.set_theme(style="white")
 
-# # K-Means centroidleri X_scaled uzayındadır; grafikte ham R/F birimleri için geri dönüştürülür.
-# centroids_raw = pd.DataFrame(
-#     scaler.inverse_transform(kmeans.cluster_centers_),
-#     columns=["recency", "frequency", "monetary"],
-# )
-
-# # Centroid satırına doğru iş adını da bağlar.
-# centroids_raw["cluster"] = range(kmeans.n_clusters)
-# centroids_raw["segment"] = centroids_raw["cluster"].map(segment_names)
-
-
-# Bar değerleri ve segment adları doğrudan df_rfm'deki her müşteri satırından sayılacak.
-fig, ax = plt.subplots(figsize=(11, 5))
-
-# Her segment için müşteri sayısını yatay bar olarak çizer.
+# First chart: The number of customers in each RFM segment
+plt.figure(figsize=(20, 10))
+plt.title("Customer count by RFM segment", fontsize=18)
 sns.countplot(
-    data=df_rfm,                   # İçinde her müşteri ve segment sütunu bulunan tablo.
-    y="segment",                   # Kategorik eksen dikey; uzun segment isimleri okunur.
-    order=segment_order,            # Bar sırasını iş mantığına göre sabitler.
-    hue="segment",                 # Her segmentin palette'teki rengini seçmesini sağlar.
-    legend=False,                   # y ekseninde isim zaten olduğu için tekrarlı legend'ı gizler.
-    ax=ax,                          # Grafiği bu Matplotlib eksenine çizer.
+    data=df_rfm,
+    y="segment",
+    order=segment_order,
+    hue="segment",
+    legend=False,
+    palette="Set2"
 )
+sns.despine(right=True, top=True)
+plt.xlabel("number of customers", fontsize=18)
+plt.xticks(fontsize=18)
+plt.yticks(fontsize=18)
+plt.ylabel("")
 
-# Her barın ucuna tam müşteri sayısını yazdırır.
+ax = plt.gca()
 for container in ax.containers:
-    ax.bar_label(container, padding=3, fmt="%d")
+    ax.bar_label(container, padding=3, fmt="%d", fontsize=18)
 
-# Başlık ve eksen etiketleri grafiğin iş sorusunu açıklar.
-ax.set(title="Customer count by RFM segment", xlabel="Number of customers", ylabel="")
-
-# Kesilmiş label olmaması için boşlukları otomatik ayarlar.
-fig.tight_layout()
-
-# PNG çıktısını script'in olduğu ex05 klasörüne subject'e uygun bir adla kaydeder.
-fig.savefig(output_dir / "Clustering_segment_sizes.png", dpi=200, bbox_inches="tight")
+plt.tight_layout()
+plt.savefig(output_dir / "Clustering_segment_sizes.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 
 
 
-
-
-
-
-
-
-
-# Her segmenti tek satıra indirger; medyan aykırı değerlerden daha dayanıklıdır.
 bubble_summary = (
     df_rfm.groupby("segment", observed=True)
     .agg(
-        customers=("user_id", "size"),                         # Bubble yanına yazılacak segment büyüklüğü.
-        recency_months=("recency", lambda s: s.median() / 30.44),# Median R'yi gün yerine aya çevirir.
-        median_frequency=("frequency", "median"),              # y eksenindeki tipik sipariş sayısı.
-        median_monetary=("monetary", "median"),                # Bubble alanını belirleyecek tipik harcama.
+        recency_median_months=(
+            "recency",
+            "median"
+        ),
+        frequency_median=("frequency", "median"),
+        monetary_mean=("monetary", "mean"),
     )
-    .reindex(segment_order)                                      # Satır sırasını grafiklerle eşitler.
-    .reset_index()                                               # segment'i yeniden normal sütun yapar.
+    .reindex(segment_order)
+    .reset_index()
 )
 
-# Orta boy bir figür ve tek eksen oluşturur.
-fig, ax = plt.subplots(figsize=(11, 7))
-
-# Her segment için tek bir bubble çizer.
+# Second chart: Bubble plot of RFM segments
+plt.figure(figsize=(20, 15))
+plt.title("Bubble plot of RFM segments", fontsize=18)
 sns.scatterplot(
-    data=bubble_summary,             # Dört satırlık özet tablosu.
-    x="recency_months",              # Solda yakın zamanlı, sağda eski alışveriş.
-    y="median_frequency",            # Yukarı doğru daha sık satın alma.
-    hue="segment",                   # Segmenti renk ile kodlar.
-    size="median_monetary",          # Median harcamayı bubble alanı ile kodlar.
-    sizes=(250, 1800),                # En küçük/en büyük marker alanını okunabilir sınırlar.
-    legend="brief",                  # Legend'da segment ve anlamlı boyut örneklerini gösterir.
-    ax=ax,                            # Çizimi seçilen eksene yapar.
+    data=bubble_summary,
+    x="recency_median_months",
+    y="frequency_median",
+    hue="segment",
+    size="monetary_mean",
+    palette="Set2",
+    sizes=(500, 5000),
+    size_norm=(0, bubble_summary["monetary_mean"].max()),
+    legend=False
 )
 
-# Her bubble'ın yanına iş adı ve kaç müşteri içerdiğini koyar.
+sns.despine(right=True, top=True)
+plt.xlabel("Median Recency (months)", fontsize=18)
+plt.xticks(fontsize=18)
+plt.yticks(fontsize=18)
+plt.ylabel("Median Frequency", fontsize=18)
+
+ax = plt.gca()
 for row in bubble_summary.itertuples():
     ax.annotate(
-        f"{row.segment}\nn={row.customers:,}",
-        (row.recency_months, row.median_frequency),
-        xytext=(8, 8), textcoords="offset points", fontsize=9,
+        f'Average "{row.segment}": {row.monetary_mean:,.2f} ₳',
+        xy=(row.recency_median_months, row.frequency_median),
+        xytext=(10, 10),
+        textcoords="offset points",
+        fontsize=14,
     )
 
-# Frequency aralığı geniş olduğunda küçük değerleri de görünür kılmak için log ölçek kullanır.
-ax.set_yscale("log")
-
-# Eksenlerin neyi ölçtüğünü ve bubble alanının anlamını açıkça yazar.
-ax.set(
-    title="RFM segment profile: recency, frequency and monetary value",
-    xlabel="Median recency (months since last purchase; lower is more recent)",
-    ylabel="Median frequency (orders; log scale)",
+ax.xaxis.set_major_locator(MultipleLocator(30.44))
+ax.xaxis.set_major_formatter(
+    FuncFormatter(lambda days, position: f"{days / 30.44:.0f}")
 )
 
-# Düzeni düzeltir, dosyayı üretir ve gösterir.
-fig.tight_layout()
-fig.savefig(output_dir / "Clustering_rfm_bubbles.png", dpi=200, bbox_inches="tight")
+plt.tight_layout()
+plt.savefig(output_dir / "Clustering_rfm_bubbles.png", dpi=200, bbox_inches="tight")
 plt.show()
+
+
+
+
+
+
+# # Orta boy bir figür ve tek eksen oluşturur.
+# fig, ax = plt.subplots(figsize=(20, 10))
+
+# sns.scatterplot(
+#     data=bubble_summary,
+#     x="recency_median_months",
+#     y="frequency_median",
+#     hue="segment",
+#     size="monetary_mean",              # Bubble ALANI ortalama Monetary'ye bağlı.
+#     palette="Set2",
+#     sizes=(180, 1800),                 # Görsel alan aralığı; birimi point².
+#     size_norm=(0, bubble_summary["monetary_mean"].max()),
+#     legend=False,                      # Subjectteki gibi legend yok.
+#     ax=ax,
+# )
+
+# for row in bubble_summary.itertuples():
+#     ax.annotate(
+#         f'Average "{row.segment}": {row.monetary_mean:,.2f} ₳',
+#         xy=(row.recency_median_months, row.frequency_median),
+#         xytext=(10, 10),
+#         textcoords="offset points",
+#         fontsize=11,
+#     )
+
+
+# ax.xaxis.set_major_locator(MultipleLocator(30.44))
+# ax.xaxis.set_major_formatter(
+#     FuncFormatter(lambda days, position: f"{days / 30.44:.0f}")
+# )
+
+# ax.set(
+#     title="Customer segments",
+#     xlabel="Median Recency (month)",
+#     ylabel="Median Frequency",
+# )
+# # Düzeni düzeltir, dosyayı üretir ve gösterir.
+# fig.tight_layout()
+# fig.savefig(output_dir / "Clustering_rfm_bubbles.png", dpi=200, bbox_inches="tight")
+# plt.show()
+
+
+# GRAFİK 2: Kümeler ve Centroidler (Scatter Plot: Recency vs Frequency)
+# plt.figure(figsize=(9, 6))
+# sns.scatterplot(data=df_rfm, x="recency", y="frequency", hue="segment", alpha=0.6, palette="Set1")
+
+# # Centroidleri orijinal ölçeğe geri çevirip çizelim
+# centroids = scaler.inverse_transform(kmeans.cluster_centers_)
+# plt.scatter(centroids[:, 0], centroids[:, 1], s=250, c="yellow", edgecolor="black", marker="X", label="Centroids")
+
+# plt.title("Customer Clusters with Centroids")
+# plt.xlabel("Recency (Days)")
+# plt.ylabel("Frequency (Orders)")
+# plt.legend()
+# plt.tight_layout()
+# plt.show()
