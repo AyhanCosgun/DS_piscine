@@ -66,7 +66,7 @@ cluster_check["revenue_index"] = (
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", None)
 
-print(cluster_check.round(2),file=open("asd.txt", "w"))
+print(cluster_check.round(2),file=open("cluster_check.txt", "w"))
 
 
 output_dir = Path(__file__).resolve().parent
