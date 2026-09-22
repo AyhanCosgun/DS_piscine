@@ -82,7 +82,7 @@ df_rfm["segment"] = df_rfm["cluster"].map(segment_names)
 
 segment_order = list(segment_names.values())
 
-sns.set_theme(style="white")
+sns.set_theme(style="white", font="DejaVu Sans")
 
 # First chart: The number of customers in each RFM segment
 plt.figure(figsize=(20, 10))
