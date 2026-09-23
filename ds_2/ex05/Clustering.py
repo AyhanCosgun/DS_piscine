@@ -110,15 +110,11 @@ plt.savefig(output_dir / "Clustering_segment_sizes.png", dpi=200, bbox_inches="t
 plt.show()
 
 
-
+# Second chart: Bubble plot of RFM segments
 
 bubble_summary = (
-    df_rfm.groupby("segment", observed=True)
-    .agg(
-        recency_median_months=(
-            "recency",
-            "median"
-        ),
+    df_rfm.groupby("segment", observed=True).agg(
+        recency_median_months=("recency", "median"),
         frequency_median=("frequency", "median"),
         monetary_mean=("monetary", "mean"),
     )
@@ -126,7 +122,6 @@ bubble_summary = (
     .reset_index()
 )
 
-# Second chart: Bubble plot of RFM segments
 plt.figure(figsize=(20, 15))
 plt.title("Bubble plot of RFM segments", fontsize=18)
 sns.scatterplot(
