@@ -5,6 +5,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from pathlib import Path
+
+output_dir = Path(__file__).resolve().parent
 
 engine: Engine = create_engine(
     "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")

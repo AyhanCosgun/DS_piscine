@@ -2,6 +2,9 @@ from sqlalchemy import create_engine
 import pandas as pd
 import matplotlib.pyplot as plt
 from sqlalchemy.engine import Engine
+from pathlib import Path
+
+output_dir = Path(__file__).resolve().parent
 
 engine: Engine = create_engine(
     "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")

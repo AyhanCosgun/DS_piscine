@@ -3,6 +3,9 @@ import pandas as pd
 import seaborn as sns
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from pathlib import Path
+
+output_dir = Path(__file__).resolve().parent
 
 engine: Engine = create_engine(
     "postgresql+psycopg2://acosgun:mysecretpassword@localhost:5432/piscineds")
