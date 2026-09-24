@@ -135,7 +135,7 @@ sns.scatterplot(
     sizes=(300, 3500),
     alpha=0.8,
     size_norm=(0, bubble_summary["monetary_mean"].max()),
-    legend=False
+    legend=False,
 )
 
 sns.despine(right=True, top=True)
