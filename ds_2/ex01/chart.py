@@ -52,7 +52,7 @@ sns.set_theme()
 
 # First chart: Daily Customer Count
 plt.figure(figsize=(10, 8))
-plt.title("Daily Customer Count", fontsize=18)
+plt.title("Daily Customer Count")
 sns.lineplot(
     data=df_daily,
     x="day_date",
@@ -60,33 +60,37 @@ sns.lineplot(
     )
 plt.xlim(df_daily["day_date"].min(), df_daily["day_date"].max())
 plt.xlabel("")
-plt.ylabel("Number of customers", fontsize=18)
-plt.xticks(fontsize=18)
-plt.yticks(fontsize=18)
+plt.ylabel("Number of customers")
 plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
 plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%b"))
 plt.tight_layout()
+plt.savefig(
+    output_dir / "daily_customer_count.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()
 
 # Second chart: Monthly Sales
 plt.figure(figsize=(10, 8))
-plt.title("Monthly Sales", fontsize=18)
+plt.title("Monthly Sales")
 sns.barplot(
     data=df_monthly,
     x="month",
     y="total_sales_mil",
     color="lightsteelblue"
     )
-plt.xticks(fontsize=18)
-plt.yticks(fontsize=18)
-plt.xlabel("month", fontsize=18)
-plt.ylabel("total sales in million of ₳", fontsize=18)
+plt.xlabel("month")
+plt.ylabel("total sales in million of ₳")
 plt.tight_layout()
+plt.savefig(
+    output_dir / "monthly_sales.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()
 
 # Third chart: Daily Average Spend per Customer
 plt.figure(figsize=(10, 8))
-plt.title("Daily Average Spend per Customer", fontsize=18)
+plt.title("Daily Average Spend per Customer")
 sns.lineplot(
     data=df_daily,
     x="day_date",
@@ -95,9 +99,7 @@ sns.lineplot(
     )
 plt.xlim(df_daily["day_date"].min(), df_daily["day_date"].max())
 plt.xlabel("")
-plt.ylabel("average spend / customers in ₳", fontsize=18)
-plt.xticks(fontsize=18)
-plt.yticks(fontsize=18)
+plt.ylabel("average spend / customers in ₳")
 plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
 plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%b"))
 plt.fill_between(
@@ -107,4 +109,8 @@ plt.fill_between(
     color="lightsteelblue",
 )
 plt.tight_layout()
+plt.savefig(
+    output_dir / "daily_average_spend.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()

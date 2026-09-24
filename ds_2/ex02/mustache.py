@@ -59,57 +59,66 @@ sns.set_theme()
 
 # First chart: Raw Product Prices (All Outliers / Fliers Included)
 plt.figure(figsize=(10, 8))
-plt.title("Raw Product Prices", fontsize=18)
+plt.title("Raw Product Prices")
 sns.boxplot(x=df_prices["price"], color="#68B478", fliersize=10,
             linewidth=3,
             flierprops={"marker": "d",
                         "markerfacecolor": "#4c4c4c",
                         "markeredgecolor": "#4c4c4c"})
-plt.xlabel("price", fontsize=20)
-plt.xticks(fontsize=20)
+plt.xlabel("price")
 plt.tight_layout()
+plt.savefig(
+    output_dir / "raw_product_prices.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()
 
 # Second chart: Adjusted Product Prices (Outliers Hidden)
 plt.figure(figsize=(10, 8))
-plt.title("Adjusted Product Prices", fontsize=18)
+plt.title("Adjusted Product Prices")
 sns.boxplot(x=df_prices["price"], color="#68B478", showfliers=False,
             linewidth=3)
-plt.xlabel("price", fontsize=20)
-plt.xticks(fontsize=20)
+plt.xlabel("price")
 plt.tight_layout()
+plt.savefig(
+    output_dir / "adjusted_product_prices.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()
 
 # Third chart: Average Basket Price per User
 plt.figure(figsize=(10, 8))
-plt.title("Average Basket Price per User (Outliers / Fliers Hidden)",
-          fontsize=18)
+plt.title("Average Basket Price per User (Outliers / Fliers Hidden)")
 sns.boxplot(x=df_basket["avg_basket"], color="#64A0C8", showfliers=False,
             linewidth=3)
 plt.xlabel("")
-plt.xticks(fontsize=20)
 plt.tight_layout()
+plt.savefig(
+    output_dir / "average_basket_price.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()
 
 # Fourth chart: Average Basket Price per User (Outliers / Fliers Included)
 plt.figure(figsize=(10, 8))
-plt.title("Average Basket Price per User (Outliers / Fliers Included)",
-          fontsize=18)
+plt.title("Average Basket Price per User (Outliers / Fliers Included)")
 sns.boxplot(x=df_basket["avg_basket"], color="#64A0C8", fliersize=10,
             linewidth=3,
             flierprops={"marker": "d",
                         "markerfacecolor": "#4c4c4c",
                         "markeredgecolor": "#4c4c4c"})
 plt.xlabel("")
-plt.xticks(fontsize=20)
 plt.tight_layout()
+plt.savefig(
+    output_dir / "average_basket_price_with_outliers.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()
 
 # Given Subject Box plot : Misunderstanding of "average basket price per user"
 # Fifth chart: Daily Average Spend per Customer (Outliers / Fliers Included)
 plt.figure(figsize=(10, 8))
-plt.title("Daily Average Spend per Customer (Outliers / Fliers Included)",
-          fontsize=18)
+plt.title("Daily Average Spend per Customer (Outliers / Fliers Included)")
 sns.boxplot(x=df_daily_av_spend["avg_spend_per_customer"], color="#64A0C8",
             fliersize=10,
             linewidth=3,
@@ -117,6 +126,9 @@ sns.boxplot(x=df_daily_av_spend["avg_spend_per_customer"], color="#64A0C8",
                         "markerfacecolor": "#4c4c4c",
                         "markeredgecolor": "#4c4c4c"})
 plt.xlabel("")
-plt.xticks(fontsize=20)
 plt.tight_layout()
+plt.savefig(
+    output_dir / "daily_average_spend_with_outliers.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()

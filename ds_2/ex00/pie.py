@@ -42,4 +42,8 @@ plt.pie(
 )
 plt.title("Distribution of Customer Events", fontsize=20)
 plt.tight_layout()
+plt.savefig(
+    output_dir / "pie_chart.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()

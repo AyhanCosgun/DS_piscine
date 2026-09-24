@@ -38,8 +38,7 @@ sns.set_theme()
 fig, axs = plt.subplots(1, 2, figsize=(25, 10))
 
 # First chart: The number of orders according to the frequency
-axs[0].set_title("The number of orders according to the frequency",
-                 fontsize=20)
+axs[0].set_title("The number of orders according to the frequency")
 sns.histplot(ax=axs[0],
              data=df_fm,
              x="frequency",
@@ -47,15 +46,12 @@ sns.histplot(ax=axs[0],
              binrange=(1, 38),
              color="lightsteelblue",
              linewidth=3)
-axs[0].set_xlabel("frequency", fontsize=20)
+axs[0].set_xlabel("frequency")
 axs[0].set_xticks(ticks=[0, 10, 20, 30])
-axs[0].tick_params(axis='x', labelsize=20)
-axs[0].set_ylabel("customers", fontsize=20)
-axs[0].tick_params(axis='y', labelsize=20)
+axs[0].set_ylabel("customers")
 
 # Second chart: the Altairian Dollars spent on the site by customers
-axs[1].set_title("the Altairian Dollars spent on the site by customers",
-                 fontsize=20)
+axs[1].set_title("the Altairian Dollars spent on the site by customers")
 sns.histplot(ax=axs[1],
              data=df_fm,
              x="monetary",
@@ -64,10 +60,8 @@ sns.histplot(ax=axs[1],
              linewidth=3,
              color="lightsteelblue")
 axs[1].set_xticks(ticks=[0, 50, 100, 150, 200])
-axs[1].set_xlabel("monetary value in ₳", fontsize=20)
-axs[1].tick_params(axis='x', labelsize=20)
-axs[1].set_ylabel("customers", fontsize=20)
-axs[1].tick_params(axis='y', labelsize=20)
+axs[1].set_xlabel("monetary value in ₳")
+axs[1].set_ylabel("customers")
 
 counts, bin_edges = np.histogram(df_fm["monetary"], bins=5, range=(-25, 225))
 print("Box boundaries:", bin_edges)
@@ -76,4 +70,8 @@ print("Customer Count in the histogram:", counts.sum())
 print("Total Customer Count (df_fm):", df_fm.shape[0])
 
 plt.tight_layout(w_pad=10.0)
+plt.savefig(
+    output_dir / "frequency_monetary.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()

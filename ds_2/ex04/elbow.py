@@ -48,11 +48,13 @@ for k in K_range:
     kmeans.fit(X_scaled)
     inertias.append(kmeans.inertia_)
 
-plt.figure(figsize=(15, 10))
+plt.figure(figsize=(10, 8))
 sns.lineplot(x=K_range, y=inertias, linewidth=3)
-plt.title("The Elbow Method", fontsize=20)
-plt.xlabel("Number of clusters (k)", fontsize=20)
-plt.ylabel("Inertia (WCSS)", fontsize=20)
-plt.xticks(fontsize=20)
-plt.yticks(fontsize=20)
+plt.title("The Elbow Method")
+plt.xlabel("Number of clusters (k)")
+plt.ylabel("Inertia (WCSS)")
+plt.savefig(
+    output_dir / "elbow_method.png",
+    dpi=200,
+    bbox_inches="tight")
 plt.show()
