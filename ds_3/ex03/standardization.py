@@ -1,7 +1,6 @@
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
-import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 def load_csv(path: Path) -> pd.DataFrame | None:
@@ -33,14 +32,14 @@ def main():
         print("Aborting...")
         return
 
-    scalar = StandardScaler()
+    scaler = StandardScaler()
     feature_columns = [c for c in train_data.columns if c != "knight"]
-    train_data_scaled = scalar.fit_transform(train_data[feature_columns])
+    train_data_scaled = scaler.fit_transform(train_data[feature_columns])
     train_data_scaled_df = pd.DataFrame(
         train_data_scaled,
         columns=feature_columns).join(train_data["knight"])
     test_data_scaled_df = pd.DataFrame(
-        scalar.fit_transform(
+        scaler.transform(
         test_data),
         columns=feature_columns)
 
@@ -54,30 +53,30 @@ def main():
 
     # Standardized data scatter plots
 
-    SEPERATING_PAIR = ("Empowered", "Prescience")
+    SEPARATING_PAIR = ("Empowered", "Prescience")
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     for label, group in train_data_scaled_df.groupby("knight"):
-        axes[0].scatter(group[SEPERATING_PAIR[0]], group[SEPERATING_PAIR[1]],
+        axes[0].scatter(group[SEPARATING_PAIR[0]], group[SEPARATING_PAIR[1]],
                 color='blue' if label == "Jedi" else 'red',
                 alpha=0.5 if label == "Jedi" else 0.3,
                 label=label,
                 s=40)
     axes[0].set(title="Standardized Train Data Seperating Plot",
-                xlabel=SEPERATING_PAIR[0],
-                ylabel=SEPERATING_PAIR[1])
+                xlabel=SEPARATING_PAIR[0],
+                ylabel=SEPARATING_PAIR[1])
     axes[0].legend()
 
-    axes[1].scatter(test_data_scaled_df[SEPERATING_PAIR[0]],
-                    test_data_scaled_df[SEPERATING_PAIR[1]],
+    axes[1].scatter(test_data_scaled_df[SEPARATING_PAIR[0]],
+                    test_data_scaled_df[SEPARATING_PAIR[1]],
             color='green',
             alpha=0.5,
             label="Knight",
             s=40)
     axes[1].set(title="Standardized Test Data Seperating Plot",
-                xlabel=SEPERATING_PAIR[0],
-                ylabel=SEPERATING_PAIR[1])
+                xlabel=SEPARATING_PAIR[0],
+                ylabel=SEPARATING_PAIR[1])
     axes[1].legend()
 
     fig.tight_layout(w_pad=10.0)
