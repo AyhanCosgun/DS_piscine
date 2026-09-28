@@ -38,9 +38,7 @@ def main():
     train_data_scaled_df = pd.DataFrame(
         train_data_scaled,
         columns=feature_columns).join(train_data["knight"])
-    test_data_scaled_df = pd.DataFrame(
-        scaler.transform(
-        test_data),
+    test_data_scaled_df = pd.DataFrame(scaler.transform(test_data),
         columns=feature_columns)
 
     pd.options.display.float_format = "{:.2f}".format
