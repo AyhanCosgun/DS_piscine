@@ -1,6 +1,8 @@
+
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
+import numpy as np
 
 def load_csv(path: Path) -> pd.DataFrame | None:
     """
@@ -53,10 +55,12 @@ def main():
     fig, axes = plt.subplots(6, 5, figsize=(18, 20))
 
     for column, ax in zip(train_data.columns, axes.flatten()):
+        edges = np.histogram_bin_edges(train_data[column], bins=40)
         for label, group in train_data.groupby("knight"):
             ax.hist(group[column],
                     color='blue' if label == "Jedi" else 'red',
-                    bins=40,
+                    bins=edges,
+                    density=True,
                     alpha=0.5 if label == "Jedi" else 0.3,
                     label=label)
         ax.set_title(column)

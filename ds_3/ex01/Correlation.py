@@ -25,10 +25,12 @@ def main():
         return
 
     y = train_data["knight"].map({"Jedi": 1, "Sith": 0})
+    knight_self_correlation = pd.Series({"knight": y.corr(y, method="pearson")})
+    
     X = train_data.drop(columns="knight")
 
     correlations = X.corrwith(y, method="pearson").sort_values(ascending=False)
-    result = pd.concat([pd.Series({"knight": 1.0}), correlations])
+    result = pd.concat([knight_self_correlation, correlations])
     print(result.to_string(float_format=lambda value: f"{value:.6f}"))
 
 if __name__ == "__main__":
