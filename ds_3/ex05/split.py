@@ -1,6 +1,8 @@
+#! /home/ayhan/python-projects/venv/bin/python3.10
 import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
+import sys
 
 
 def load_csv(path: Path) -> pd.DataFrame | None:
@@ -18,7 +20,10 @@ def load_csv(path: Path) -> pd.DataFrame | None:
 
 
 def main():
-    train_path = Path(__file__).resolve().parent.parent / "Train_knight.csv"
+    if len(sys.argv) != 2:
+        print("Usage: python split.py Train_knight.csv")
+        return
+    train_path = Path(__file__).resolve().parent / sys.argv[1]
 
     train_data = load_csv(train_path)
     if train_data is None:
@@ -48,8 +53,9 @@ def main():
     print("\n Value percentage of validation data:")
     print(validation["knight"].value_counts(normalize=True).map("{:.2%}".format))
 
-    training.to_csv("Training_knight.csv", index=False)
-    validation.to_csv("Validation_knight.csv", index=False)
+    output_dir = Path(__file__).resolve().parent
+    training.to_csv(output_dir / "Training_knight.csv", index=False)
+    validation.to_csv(output_dir / "Validation_knight.csv", index=False)
 
 
 if __name__ == "__main__":
