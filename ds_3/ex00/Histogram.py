@@ -4,18 +4,20 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def load_csv(path: Path) -> pd.DataFrame | None:
     """
     Loads a CSV file into a pandas DataFrame.
     """
-    
+
     try:
         df = pd.read_csv(path)
-        print(f"Loadind dataset of dimensions: {df.shape}")
+        print(f"Loading dataset of dimensions: {df.shape}")
         return df
     except Exception as e:
         print(f"Error loading CSV: {e}")
         return None
+
 
 def main():
     test_path = Path(__file__).resolve().parent.parent / "Test_knight.csv"
@@ -26,7 +28,7 @@ def main():
         print(f"Failed to load {test_path.name}.")
         print("Aborting...")
         return
-    
+
     train_data = load_csv(train_path)
     if train_data is None:
         print(f"Failed to load {train_path.name}.")

@@ -3,18 +3,20 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
+
 def load_csv(path: Path) -> pd.DataFrame | None:
     """
     Loads a CSV file into a pandas DataFrame.
     """
-    
+
     try:
         df = pd.read_csv(path)
-        print(f"Loadind dataset of dimensions: {df.shape}")
+        print(f"Loading dataset of dimensions: {df.shape}")
         return df
     except Exception as e:
         print(f"Error loading CSV: {e}")
         return None
+
 
 def main():
     test_path = Path(__file__).resolve().parent.parent / "Test_knight.csv"
@@ -25,7 +27,7 @@ def main():
         print(f"Failed to load {test_path.name}.")
         print("Aborting...")
         return
-    
+
     train_data = load_csv(train_path)
     if train_data is None:
         print(f"Failed to load {train_path.name}.")
@@ -39,17 +41,21 @@ def main():
         train_data_scaled,
         columns=feature_columns).join(train_data["knight"])
     test_data_scaled_df = pd.DataFrame(scaler.transform(test_data),
-        columns=feature_columns)
+                                       columns=feature_columns)
 
     pd.options.display.float_format = "{:.2f}".format
-    print("Train data scaled:")
+    print("\n Train data (raw):")
+    print(train_data[feature_columns])
+    print("\nTrain data scaled:")
     print(train_data_scaled_df[feature_columns])
-    print()
-    print("Test data scaled:")
+
+    print("\nTest data (raw):")
+    print(test_data[feature_columns])
+    print("\nTest data scaled:")
     print(test_data_scaled_df)
 
 
-    # Standardized data scatter plots
+# Standardized data scatter plots
 
     SEPARATING_PAIR = ("Empowered", "Prescience")
 
@@ -57,10 +63,10 @@ def main():
 
     for label, group in train_data_scaled_df.groupby("knight"):
         axes[0].scatter(group[SEPARATING_PAIR[0]], group[SEPARATING_PAIR[1]],
-                color='blue' if label == "Jedi" else 'red',
-                alpha=0.5 if label == "Jedi" else 0.3,
-                label=label,
-                s=40)
+                        color='blue' if label == "Jedi" else 'red',
+                        alpha=0.5 if label == "Jedi" else 0.3,
+                        label=label,
+                        s=40)
     axes[0].set(title="Standardized Train Data Seperating Plot",
                 xlabel=SEPARATING_PAIR[0],
                 ylabel=SEPARATING_PAIR[1])
@@ -68,10 +74,10 @@ def main():
 
     axes[1].scatter(test_data_scaled_df[SEPARATING_PAIR[0]],
                     test_data_scaled_df[SEPARATING_PAIR[1]],
-            color='green',
-            alpha=0.5,
-            label="Knight",
-            s=40)
+                    color='green',
+                    alpha=0.5,
+                    label="Knight",
+                    s=40)
     axes[1].set(title="Standardized Test Data Seperating Plot",
                 xlabel=SEPARATING_PAIR[0],
                 ylabel=SEPARATING_PAIR[1])
