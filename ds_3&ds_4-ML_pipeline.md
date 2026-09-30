@@ -116,9 +116,9 @@ olarak düşünülebilir.
 
 Histogram sana bir feature'ın:
 
-\[
+$$
 X
-\]
+$$
 
 dağılımını gösterir.
 
@@ -150,23 +150,23 @@ Buradan şunları gözlemleyebilirsin:
 
 Çünkü artık elimizde:
 
-\[
+$$
 X = \text{feature}
-\]
+$$
 
 ve
 
-\[
+$$
 Y = \text{knight}
-\]
+$$
 
 var.
 
 Mesela:
 
-\[
+$$
 X=\text{Strength}
-\]
+$$
 
 için:
 
@@ -245,15 +245,15 @@ diye bakıyordun.
 
 Ex01'de bunu sayısallaştırıyorsun:
 
-\[
+$$
 r_{X,Y}
-\]
+$$
 
 Örneğin subject'in örneğinde:
 
-\[
+$$
 \text{corr(Empowered, knight)}=0.793566
-\]
+$$
 
 gibi değerler var. fileciteturn0file0L85-L113
 
@@ -278,15 +278,15 @@ Pearson hesabına doğrudan string veremezsin.
 
 Dolayısıyla bunu binary indicator'a çeviriyorsun:
 
-\[
+$$
 Y\in\{0,1\}
-\]
+$$
 
 ve böylece:
 
-\[
+$$
 corr(X,Y)
-\]
+$$
 
 hesaplayabiliyorsun.
 
@@ -345,9 +345,9 @@ ve özellikle:
 
 Şimdi tek feature yerine iki feature birlikte düşünüyorsun:
 
-\[
+$$
 (X_1,X_2)
-\]
+$$
 
 Örneğin:
 
@@ -358,9 +358,9 @@ y = Prescience
 
 Her knight artık düzlemde bir nokta:
 
-\[
+$$
 (x_i,y_i)
-\]
+$$
 
 oluyor.
 
@@ -402,23 +402,23 @@ diyebiliriz.
 
 Ex01'de tek tek:
 
-\[
+$$
 corr(X_1,Y)
-\]
+$$
 
 ve
 
-\[
+$$
 corr(X_2,Y)
-\]
+$$
 
 ölçtün.
 
 Ex02'de ise artık:
 
-\[
+$$
 (X_1,X_2)
-\]
+$$
 
 birlikte nasıl davranıyor diye bakıyorsun.
 
@@ -467,9 +467,9 @@ veya:
 
 Standart formül:
 
-\[
+$$
 z=\frac{x-\mu}{\sigma}
-\]
+$$
 
 Burada:
 
@@ -506,14 +506,14 @@ feature scaling önemli olabilir.
 
 Örneğin Öklid mesafesi:
 
-\[
+$$
 d(x,y)
 =
 \sqrt{
 (x_1-y_1)^2+
 (x_2-y_2)^2
 }
-\]
+$$
 
 olsun.
 
@@ -561,31 +561,31 @@ Normalization genellikle feature'ları belirli bir aralığa taşır.
 
 Bu subject'in örnek grafiğinde eksenlerin yaklaşık:
 
-\[
+$$
 0\le x\le1,\qquad 0\le y\le1
-\]
+$$
 
 aralığında olması ve örnek çıktıda `0.52`, `0.02`, `0.54`, ... gibi değerler verilmesi, burada **Min-Max benzeri [0,1] normalization** kullanıldığını güçlü biçimde düşündürüyor. Fakat subject metni kullanılan formülü açıkça yazmıyor; yalnızca "Normalize" diyor. fileciteturn2file0
 
 Tipik formül:
 
-\[
+$$
 x'=
 \frac{x-x_{\min}}
 {x_{\max}-x_{\min}}
-\]
+$$
 
 Böylece:
 
-\[
+$$
 x_{\min}\rightarrow0
-\]
+$$
 
 ve
 
-\[
+$$
 x_{\max}\rightarrow1
-\]
+$$
 
 olur.
 
@@ -612,19 +612,19 @@ Aslında çok güzel bir ders veriyor:
 
 Veriye ve kullanacağın yönteme göre:
 
-\[
+$$
 X
 \rightarrow
 Z
-\]
+$$
 
 veya
 
-\[
+$$
 X
 \rightarrow
 X'
-\]
+$$
 
 gibi farklı dönüşümler yapabilirsin.
 
@@ -766,9 +766,9 @@ Bence senin aradığın "neden-sonuç" zinciri tam olarak şu:
 
 Histogramlarla:
 
-\[
+$$
 P(X)
-\]
+$$
 
 hakkında fikir edinmeye çalışıyorsun.
 
@@ -784,9 +784,9 @@ Bu:
 
 ### "Feature ile hedef arasında ilişki var mı?"
 
-\[
+$$
 corr(X_i,Y)
-\]
+$$
 
 hesaplıyorsun.
 
@@ -800,9 +800,9 @@ Bu:
 
 ### "Feature'ları birlikte ele alırsam sınıflar geometrik olarak ayrılıyor mu?"
 
-\[
+$$
 (X_i,X_j)
-\]
+$$
 
 düzleminde noktaları çiziyorsun.
 
@@ -818,9 +818,9 @@ Bu:
 
 Ölçekleri:
 
-\[
+$$
 z=\frac{x-\mu}{\sigma}
-\]
+$$
 
 ile düzenliyorsun.
 
@@ -836,11 +836,11 @@ Bu:
 
 Örneğin:
 
-\[
+$$
 x'=
 \frac{x-x_{\min}}
 {x_{\max}-x_{\min}}
-\]
+$$
 
 ile [0,1] aralığına getiriyorsun.
 
@@ -919,19 +919,19 @@ Bu da bütün resmi birbirine bağlayan güzel bir nokta.
 
 Pearson correlation:
 
-\[
+$$
 r=
 \frac{Cov(X,Y)}
 {\sigma_X\sigma_Y}
-\]
+$$
 
 olduğu için lineer ölçeklemeler korelasyonun değerini değiştirmez:
 
-\[
+$$
 corr(X,Y)
 =
 corr(aX+b,Y)
-\]
+$$
 
 (\(a>0\) için).
 
@@ -968,9 +968,9 @@ Bence bunu şu altı soruyla ezberlemek çok daha faydalı:
 
 Bunun arkasındaki daha büyük soru ise:
 
-\[
+$$
 \boxed{\text{"Bu veriden güvenilir bir ML modeli çıkarmaya hazır mıyım?"}}
-\]
+$$
 
 Ex00–Ex02:
 
@@ -1133,33 +1133,33 @@ ve bunun yanında precision, recall, f1-score ve accuracy yazdırılıyor. fi
 
 ### Precision
 
-\[
+$$
 Precision = \frac{TP}{TP+FP}
-\]
+$$
 
 Modelin "pozitif" dediği örneklerin ne kadarı gerçekten pozitiftir?
 
 ### Recall
 
-\[
+$$
 Recall = \frac{TP}{TP+FN}
-\]
+$$
 
 Gerçekte pozitif olanların ne kadarını yakaladık?
 
 ### F1-score
 
-\[
+$$
 F1 = 2\frac{Precision\cdot Recall}{Precision+Recall}
-\]
+$$
 
 Precision ile recall'un harmonik ortalamasıdır. İkisini birlikte yüksek tutmayı ister.
 
 ### Accuracy
 
-\[
+$$
 Accuracy = \frac{TP+TN}{TP+TN+FP+FN}
-\]
+$$
 
 Toplam örneklerin ne kadarını doğru sınıflandırdık?
 
@@ -1205,9 +1205,9 @@ Ex00'da bir modelin sonucunu değerlendiriyorduk. Burada tekrar verinin kendisin
 
 Örneğin:
 
-\[
+$$
 corr(X_1,X_2)
-\]
+$$
 
 çok yüksekse, iki feature benzer doğrusal bilgi taşıyor olabilir.
 
@@ -1279,9 +1279,9 @@ olarak düşünülebilir.
 
 Bir feature'ın variance'ı kabaca:
 
-\[
+$$
 Var(X)=\frac{1}{n}\sum_{i=1}^{n}(x_i-\bar{x})^2
-\]
+$$
 
 şeklindedir.
 
@@ -1356,17 +1356,17 @@ Subject açıkça veride **multicollinearity** olduğunu söylüyor ve bunu tesp
 
 Örneğin:
 
-\[
+$$
 X_2 \approx 3X_1
-\]
+$$
 
 gibi çok güçlü bir ilişki varsa, `X1` ve `X2` neredeyse aynı bilgiyi taşıyor olabilir.
 
 Bir lineer model kurduğunu düşün:
 
-\[
+$$
 y=\beta_0+\beta_1X_1+\beta_2X_2
-\]
+$$
 
 Eğer `X1` ve `X2` birbirine çok benziyorsa, modelin "hangisinin etkisi ne kadar?" sorusunu kararlı biçimde cevaplaması zorlaşabilir.
 
@@ -1378,23 +1378,23 @@ Her feature için diğer feature'ların onu ne kadar açıklayabildiğini ölçe
 
 Standart tanım:
 
-\[
+$$
 VIF_j = \frac{1}{1-R_j^2}
-\]
+$$
 
 Buradaki \(R_j^2\), `X_j` feature'ını diğer feature'larla açıklayan regresyonun determination coefficient'ıdır.
 
 Eğer:
 
-\[
+$$
 R_j^2\rightarrow1
-\]
+$$
 
 ise:
 
-\[
+$$
 VIF_j\rightarrow\infty
-\]
+$$
 
 olur.
 
@@ -1402,9 +1402,9 @@ Yani feature diğer feature'lar tarafından neredeyse tamamen açıklanabiliyor 
 
 Subject ayrıca tolerance değerini de örnek çıktıda gösteriyor. Tolerance ile VIF arasındaki standart ilişki:
 
-\[
+$$
 Tolerance = \frac{1}{VIF}
-\]
+$$
 
 şeklindedir. Subject'in örnek çıktısında her feature için VIF ve Tolerance birlikte gösteriliyor. fileciteturn3file0L137-L145
 
@@ -1442,9 +1442,9 @@ denir.
 
 Burada subject'in verdiği seçim kuralı özellikle:
 
-\[
+$$
 VIF < 5
-\]
+$$
 
 olacak şekilde feature'ları tutmaktır. fileciteturn3file0L136-L138
 
@@ -1477,21 +1477,21 @@ veya:
 
 Artık elimizde:
 
-\[
+$$
 X = \text{feature'lar}
-\]
+$$
 
 ve:
 
-\[
+$$
 y = \text{Jedi/Sith}
-\]
+$$
 
 var ve modelden:
 
-\[
+$$
 \hat{y}=f(X)
-\]
+$$
 
 öğrenmesini bekliyoruz.
 
@@ -1525,15 +1525,15 @@ Subject'in örnek ağacında `X[27] <= 0.489`, `X[20] <= 0.345` gibi eşikler ve
 
 Decision tree node'undaki sınıf karışıklığını ölçen impurity ölçülerinden biridir:
 
-\[
+$$
 Gini=1-\sum_k p_k^2
-\]
+$$
 
 Bir node safsa, yani bütün örnekler aynı sınıftaysa:
 
-\[
+$$
 Gini=0
-\]
+$$
 
 olur.
 
@@ -1651,10 +1651,10 @@ KNN mesafeye dayanır.
 
 Örneğin Öklid mesafesi:
 
-\[
+$$
 d(x,y)=
 \sqrt{\sum_i(x_i-y_i)^2}
-\]
+$$
 
 olduğu için feature ölçekleri çok önemlidir.
 
