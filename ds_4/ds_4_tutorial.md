@@ -162,21 +162,21 @@ bunlar **features / predictors / input variables**.
 
 Matematiksel olarak:
 
-\[
+$$
 X = (X_1,X_2,\ldots,X_p)
-\]
+$$
 
 ve
 
-\[
+$$
 Y \in \{Jedi,Sith\}.
-\]
+$$
 
 Modelin görevi kabaca:
 
-\[
+$$
 X \longrightarrow Y
-\]
+$$
 
 ilişkisini öğrenmektir.
 
@@ -343,27 +343,27 @@ Truth   Jedi      25     24
 
 Jedi positive alınırsa:
 
-\[
+$$
 TP=25
-\]
+$$
 
-\[
+$$
 FN=24
-\]
+$$
 
-\[
+$$
 FP=30
-\]
+$$
 
-\[
+$$
 TN=21
-\]
+$$
 
 Toplam:
 
-\[
+$$
 25+24+30+21=100.
-\]
+$$
 
 ---
 
@@ -371,15 +371,15 @@ Toplam:
 
 Doğru tahminlerin toplam oranıdır:
 
-\[
+$$
 Accuracy = \frac{TP+TN}{TP+TN+FP+FN}
-\]
+$$
 
 Subject örneğinde:
 
-\[
+$$
 Accuracy=\frac{25+21}{100}=0.46.
-\]
+$$
 
 Yani `%46`.
 
@@ -397,15 +397,15 @@ Genel olarak kaç tahminin doğru olduğunu söyler.
 
 "Model positive dediği durumların ne kadarı gerçekten positive?"
 
-\[
+$$
 Precision=\frac{TP}{TP+FP}
-\]
+$$
 
 Subject örneğinde Jedi için:
 
-\[
+$$
 Precision=\frac{25}{25+30}=0.4545\ldots\approx0.45.
-\]
+$$
 
 Yani modelin `Jedi` dediği örneklerin yaklaşık %45'i gerçekten Jedi.
 
@@ -415,15 +415,15 @@ Yani modelin `Jedi` dediği örneklerin yaklaşık %45'i gerçekten Jedi.
 
 "Gerçekte positive olanların ne kadarını yakaladım?"
 
-\[
+$$
 Recall=\frac{TP}{TP+FN}
-\]
+$$
 
 Subject örneğinde Jedi için:
 
-\[
+$$
 Recall=\frac{25}{25+24}=0.5102\ldots\approx0.51.
-\]
+$$
 
 Yani gerçek Jedi'ların yaklaşık %51'ini yakalamış.
 
@@ -458,15 +458,15 @@ Recall    → truth merkezli
 
 Precision ile recall'un harmonik ortalamasıdır:
 
-\[
+$$
 F1=2\frac{Precision\cdot Recall}{Precision+Recall}
-\]
+$$
 
 Aynı formül eşdeğer olarak:
 
-\[
+$$
 F1=\frac{2TP}{2TP+FP+FN}.
-\]
+$$
 
 Harmonik ortalama kullanılmasının nedeni, iki metrikten biri çok düşükse F1'in de düşük kalmasını sağlamaktır.
 
@@ -590,16 +590,16 @@ Bu, DS_3 Ex01'de tek tek feature–target correlation değerlerini yazdırma yak
 
 Pearson correlation:
 
-\[
+$$
 r_{XY}=
 \frac{Cov(X,Y)}{\sigma_X\sigma_Y}
-\]
+$$
 
 ve sonucu:
 
-\[
+$$
 -1\le r\le1.
-\]
+$$
 
 Kabaca:
 
@@ -630,17 +630,17 @@ Bu tablo **correlation matrix**.
 
 Diagonal her zaman:
 
-\[
+$$
 cor(X_i,X_i)=1
-\]
+$$
 
 olduğu için `1.0` olur.
 
 Matrix simetriktir:
 
-\[
+$$
 cor(X_i,X_j)=cor(X_j,X_i).
-\]
+$$
 
 ---
 
@@ -745,9 +745,9 @@ Variance, verilerin ortalama etrafında ne kadar yayıldığını ölçer.
 
 Bir örneklem için:
 
-\[
+$$
 s^2=\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar{x})^2.
-\]
+$$
 
 Yüksek variance:
 
@@ -765,9 +765,9 @@ Düşük variance:
 
 Yeni eksenler:
 
-\[
+$$
 PC_1,PC_2,\ldots,PC_p
-\]
+$$
 
 olur.
 
@@ -792,10 +792,10 @@ gibi değerler görürsün.
 
 Bir component'in açıkladığı varyans oranı:
 
-\[
+$$
 EVR_i=
 \frac{\lambda_i}{\sum_j\lambda_j}
-\]
+$$
 
 şeklinde ifade edilir.
 
@@ -803,15 +803,15 @@ Burada `lambda_i`, PCA'nın ilgili eigenvalue'su gibi düşünülebilir.
 
 Yüzdeye çevirmek için:
 
-\[
+$$
 100\times EVR_i.
-\]
+$$
 
 Cumulative explained variance:
 
-\[
+$$
 C_i=\sum_{j=1}^{i}EVR_j.
-\]
+$$
 
 Örneğin:
 
@@ -966,9 +966,9 @@ Strength  3786.400419   0.000264
 
 Örneğin:
 
-\[
+$$
 X_3 \approx 2X_1+5X_2.
-\]
+$$
 
 Bu durumda `X3` büyük ölçüde diğer feature'ların taşıdığı bilgiyi tekrar ediyor olabilir.
 
@@ -984,9 +984,9 @@ Bir feature'ın diğer feature'larla ne kadar açıklanabildiğini ölçen bir m
 
 Feature `X_j` için:
 
-\[
+$$
 VIF_j=\frac{1}{1-R_j^2}
-\]
+$$
 
 Buradaki `R_j^2`, `X_j`'yi diğer bütün feature'larla açıklayan yardımcı regresyonun R²'sidir.
 
@@ -996,29 +996,29 @@ Buradaki `R_j^2`, `X_j`'yi diğer bütün feature'larla açıklayan yardımcı r
 
 Eğer `Xj` diğer feature'larla hiç açıklanamıyorsa:
 
-\[
+$$
 R_j^2\approx0
-\]
+$$
 
 ve:
 
-\[
+$$
 VIF_j\approx1.
-\]
+$$
 
 Bu iyi durumda.
 
 Eğer `Xj`, diğer feature'lar tarafından neredeyse tamamen açıklanabiliyorsa:
 
-\[
+$$
 R_j^2\rightarrow1
-\]
+$$
 
 ve:
 
-\[
+$$
 VIF_j\rightarrow\infty.
-\]
+$$
 
 Yani çok yüksek VIF:
 
@@ -1032,21 +1032,21 @@ Subject VIF'in yanında tolerance da gösteriyor.
 
 İlişki:
 
-\[
+$$
 Tolerance=1/VIF.
-\]
+$$
 
 Örneğin:
 
-\[
+$$
 VIF=36.763714
-\]
+$$
 
 ise:
 
-\[
+$$
 Tolerance\approx0.027201.
-\]
+$$
 
 Subject'in örneği bununla uyumlu.
 
@@ -1056,9 +1056,9 @@ Subject'in örneği bununla uyumlu.
 
 Subject burada pratik eşik olarak:
 
-\[
+$$
 VIF<5
-\]
+$$
 
 istiyor.
 
@@ -1265,27 +1265,27 @@ Node'un impurity ölçüsü.
 
 Binary durumda:
 
-\[
+$$
 Gini=1-p_1^2-p_2^2.
-\]
+$$
 
 Subject root node'unda:
 
-\[
+$$
 p_1=145/381
-\]
+$$
 
-\[
+$$
 p_2=236/381.
-\]
+$$
 
 Dolayısıyla:
 
-\[
+$$
 Gini
 =1-(145/381)^2-(236/381)^2
 \approx0.471.
-\]
+$$
 
 Bu, subject'in yazdığı değeri doğrudan açıklıyor.
 
@@ -1301,9 +1301,9 @@ Bir node tamamen tek sınıftan oluşuyorsa:
 
 Gini:
 
-\[
+$$
 1-1^2-0^2=0.
-\]
+$$
 
 Yani tamamen pure.
 
@@ -1315,9 +1315,9 @@ Yani tamamen pure.
 
 için:
 
-\[
+$$
 1-0.5^2-0.5^2=0.5.
-\]
+$$
 
 Binary classification için maksimum Gini impurity `0.5`'tir.
 
@@ -1557,10 +1557,10 @@ KNN mesafe kullanır.
 
 Öklid mesafesi:
 
-\[
+$$
 d(x,y)=
 \sqrt{\sum_j(x_j-y_j)^2}.
-\]
+$$
 
 Bir feature:
 
@@ -1590,9 +1590,9 @@ from sklearn.preprocessing import StandardScaler
 
 ile:
 
-\[
+$$
 z=\frac{x-\mu}{\sigma}
-\]
+$$
 
 uygulamak iyi bir başlangıçtır.
 
@@ -1705,23 +1705,23 @@ Adı "regression" olsa da binary classification için kullanılabilir.
 
 Önce linear score hesaplanır:
 
-\[
+$$
 z=w_1x_1+w_2x_2+\cdots+w_px_p+b.
-\]
+$$
 
 Sonra sigmoid:
 
-\[
+$$
 \sigma(z)=\frac{1}{1+e^{-z}}
-\]
+$$
 
 uygulanır.
 
 Sonuç:
 
-\[
+$$
 0<p<1.
-\]
+$$
 
 Bu değer pozitif sınıfın tahmini olasılığı gibi yorumlanabilir.
 
@@ -1848,9 +1848,9 @@ Logistic       0.90
 
 Ortalama:
 
-\[
+$$
 (0.70+0.60+0.90)/3=0.7333.
-\]
+$$
 
 Bu durumda ensemble Jedi tarafında daha güçlüdür.
 
@@ -2430,15 +2430,15 @@ Correlation iki feature arasındaki doğrusal ilişkiyi ölçer.
 
 Standardization tipik olarak:
 
-\[
+$$
 z=\frac{x-\mu}{\sigma}
-\]
+$$
 
 Normalization ise farklı tanımlara sahip olabilir; bu projede Ex04 için subject'in örnekleri `[0,1]` Min-Max scaling yorumunu güçlü biçimde destekler:
 
-\[
+$$
 x'=\frac{x-x_{min}}{x_{max}-x_{min}}.
-\]
+$$
 
 `sklearn.preprocessing.Normalizer` ise bambaşka bir, **sample/satır bazlı normlama** işlemidir.
 
