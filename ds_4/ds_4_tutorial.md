@@ -492,9 +492,9 @@ Sith  0.xx
 
 gösteriyor.
 
-Sonra genel bir `f1-score` isteniyor. Birden fazla sınıfta hangi averaging yönteminin kullanıldığı belirtilmemişse bunun ayrıntısını değerlendiriciyle/subject'in beklentisiyle kontrol etmek gerekir.
+Subject'in örnek çıktısında her sınıf için `f1-score` veriliyor; ancak metin, ayrıca tek bir 'genel F1-score' istemiyor. Bu nedenle genel bir F1 üretilecekse hangi `averaging` yönteminin (`macro`, `weighted`, `micro` vb.) seçildiği ayrıca belirtilmelidir.
 
-İki sınıflı dengeli veri için **macro F1** ve **weighted F1** birbirine yakın olabilir; ama kavramsal olarak bunlar farklıdır.
+İki sınıflı ve yaklaşık dengeli veri için **macro F1** ve **weighted F1** birbirine yakın olabilir; fakat kavramsal olarak farklı metriklerdir. Bu fark ve nedenleri bu dosyanın sonundaki Ex00 ek bölümünde ayrıntılı olarak açıklanmıştır.
 
 ---
 
@@ -2671,3 +2671,715 @@ Bu tutorial'ın DS_4 kısmındaki subject-spesifik gereksinimler, paylaşılan `
 - **Exercise 06 — Voting Classifier:** pp. 14–15
 
 Subject'in bazı egzersizlerinde kullanılan yöntemin adı veya matematiksel formülü tam verilmediği için, özellikle **Ex02'de PCA bağlantısı** gibi noktalar subject örneklerinden yapılan açık çıkarımlar olarak ele alınmıştır.
+---
+
+# 24. Ex00 — Ek Sorular ve Kavramsal Derinleştirme
+
+Bu bölüm, Ex00'daki `precision`, `recall`, `F1-score`, `accuracy` ve confusion matrix kavramlarının birbirleriyle nasıl ilişkili olduğunu daha dikkatli biçimde açıklamak için eklenmiştir.
+
+## 24.1 Precision ve recall tek başına mı düşünülür, yoksa bir sınıfla beraber mi?
+
+### Kısa cevap
+
+Bir sınıflandırma probleminde `precision` ve `recall`, **hangi sınıfı "pozitif" kabul ettiğine göre tanımlanan sınıf-spesifik ölçülerdir**.
+
+Dolayısıyla özellikle birden fazla sınıf olduğunda yalnızca:
+
+```text
+precision = 0.45
+```
+
+demek hangi sınıfın precision'ı olduğunu söylemez.
+
+Daha doğru ifadeler:
+
+```text
+Jedi precision = 0.45
+Sith precision = 0.47
+```
+
+veya:
+
+```text
+precision for the Jedi class = 0.45
+precision for the Sith class = 0.47
+```
+
+olur.
+
+Subject'in Ex00 örneğinde de tam olarak sınıf başına değerler veriliyor:
+
+```text
+             precision  recall  f1-score  total
+Jedi            0.45     0.51     0.48      49
+Sith            0.47     0.41     0.44      51
+```
+
+Subject ayrıca confusion matrix'i de:
+
+```text
+[[25 24]
+ [30 21]]
+```
+
+şeklinde gösteriyor. fileciteturn0file0L69-L78
+
+### Precision'ın sınıf-spesifik anlamı
+
+Bir sınıfı, örneğin `Jedi` sınıfını pozitif olarak seçelim.
+
+Precision:
+
+$$
+Precision_{Jedi}
+=
+\frac{TP_{Jedi}}
+{TP_{Jedi}+FP_{Jedi}}
+$$
+
+Yorum:
+
+> Modelin `Jedi` diye tahmin ettiklerinin ne kadarı gerçekten Jedi?
+
+Aynı şey `Sith` için de yapılabilir:
+
+$$
+Precision_{Sith}
+=
+\frac{TP_{Sith}}
+{TP_{Sith}+FP_{Sith}}
+$$
+
+Burada yalnızca pozitif sınıfın adını değiştiriyoruz. Her sınıfı sırayla "pozitif sınıf" gibi ele alıp diğer sınıf(lar)ı "negatif" kabul etmek, literatürde **one-vs-rest (OvR)** bakış açısıyla ifade edilebilir.
+
+### Recall'ın sınıf-spesifik anlamı
+
+`Jedi` pozitif sınıf kabul edilirse:
+
+$$
+Recall_{Jedi}
+=
+\frac{TP_{Jedi}}
+{TP_{Jedi}+FN_{Jedi}}
+$$
+
+Yorum:
+
+> Gerçekte Jedi olanların ne kadarını model Jedi olarak yakaladı?
+
+Aynı şekilde `Sith` için:
+
+$$
+Recall_{Sith}
+=
+\frac{TP_{Sith}}
+{TP_{Sith}+FN_{Sith}}
+$$
+
+### Literatürde bunların ayrı isimleri var mı?
+
+Evet; özellikle binary classification bağlamında şu eşleştirmeler kullanılır:
+
+| Ölçü | Yaygın literatür adı | Formül |
+|---|---|---|
+| Pozitif sınıf precision | **Positive Predictive Value (PPV)** | $TP/(TP+FP)$ |
+| Pozitif sınıf recall | **Sensitivity / True Positive Rate (TPR)** | $TP/(TP+FN)$ |
+| Negatif sınıf recall | **Specificity / True Negative Rate (TNR)** | $TN/(TN+FP)$ |
+| Negatif sınıf precision | **Negative Predictive Value (NPV)** | $TN/(TN+FN)$ |
+
+Dolayısıyla binary classification'da "recall" çoğu zaman varsayılan olarak **seçtiğimiz pozitif sınıfın recall'ını** ifade eder. Fakat bir rapor tüm sınıflar için ayrı değerler veriyorsa, hangi sınıfa ait olduğu ayrıca belirtilmelidir.
+
+Önemli bir ayrıntı: `Sith recall` ile `Jedi specificity` binary durumda aynı sayıya denk gelebilir; çünkü bir sınıfın recall'ı, diğer sınıfı negatif olarak ele aldığımızda onun specificity'sine karşılık gelir.
+
+---
+
+## 24.2 İki sayının ağırlıklı aritmetik ortalaması ile harmonik ortalaması aynı şey değildir
+
+Kesinlikle aynı şey değiller.
+
+İki sayı $a$ ve $b$ için eşit ağırlıklı aritmetik ortalama:
+
+$$
+A=\frac{a+b}{2}
+$$
+
+Ağırlıklı aritmetik ortalama ise:
+
+$$
+A_w=\frac{w_1a+w_2b}{w_1+w_2}
+$$
+
+Harmonik ortalama ise:
+
+$$
+H=\frac{2ab}{a+b}
+$$
+
+veya:
+
+$$
+\frac{1}{H}=\frac{1}{2}\left(\frac{1}{a}+\frac{1}{b}\right)
+$$
+
+şeklindedir.
+
+### F1 neden aritmetik ortalama değil?
+
+F1, precision ve recall'un **harmonik ortalamasıdır**:
+
+$$
+F1=\frac{2PR}{P+R}
+$$
+
+Örneğin:
+
+```text
+Precision = 0.90
+Recall    = 0.10
+```
+
+olsun.
+
+Aritmetik ortalama:
+
+$$
+\frac{0.90+0.10}{2}=0.50
+$$
+
+Harmonik ortalama:
+
+$$
+\frac{2(0.90)(0.10)}{0.90+0.10}=0.18
+$$
+
+Aradaki fark çok büyüktür.
+
+Aritmetik ortalama burada `0.50` diyerek iki değerin arasındaki orta noktayı gösterir. Fakat `precision=0.90` iken `recall=0.10` gibi çok dengesiz bir durumu yeterince cezalandırmaz.
+
+F1'in `0.18` çıkması şu mesajı verir:
+
+> Bir ölçü çok iyi olsa bile diğeri çok kötüyse, iki metriğin birlikte iyi olması anlamında F1 de yüksek olmamalıdır.
+
+### Peki weighted arithmetic average kullansak "yanlış" mı olur?
+
+Matematiksel olarak yanlış değildir; fakat elde ettiğin ölçü **F1 olmaz**.
+
+Örneğin eşit ağırlıklı bir birleşim:
+
+$$
+0.5P+0.5R
+$$
+
+kullanırsan başka bir özet metrik tanımlamış olursun.
+
+Bu metriğin de belli amaçlarla kullanılması mümkün olabilir. Fakat precision ve recall'u F1 adı altında raporlamak istiyorsan formül harmonik ortalama olmalıdır.
+
+Ayrıca ağırlıklı aritmetik ortalama, bir değerin çok yüksek diğerinin çok düşük olduğu durumda aritmetik olarak ortada bir sayı üretir; bu nedenle "iki tarafın da iyi olması" istenen durumları F1 kadar sert biçimde cezalandırmaz.
+
+---
+
+## 24.3 Ağırlıklı ortalama, harmonik ortalama ve sayıların geometrisi
+
+Burada üç temel ortalamayı birlikte düşünmek faydalıdır.
+
+Pozitif iki sayı $a$ ve $b$ için:
+
+### Aritmetik ortalama — Arithmetic Mean
+
+$$
+A=\frac{a+b}{2}
+$$
+
+Geometrik olarak $a$ ile $b$ sayı doğrusunda iki nokta ise $A$, bunların **tam orta noktasıdır**.
+
+Örneğin $a=2$, $b=8$:
+
+```text
+2 ----------- 5 ----------- 8
+              ↑
+              A
+```
+
+### Ağırlıklı aritmetik ortalama — Weighted Arithmetic Mean
+
+$$
+A_w=\frac{w_1a+w_2b}{w_1+w_2}
+$$
+
+Bu da sayı doğrusundaki bir **ağırlıklı barycenter** gibi düşünülebilir. Büyük ağırlık hangi sayıya verilirse sonuç o sayıya doğru kayar.
+
+Örneğin:
+
+$$
+a=2,\qquad b=8,\qquad w_1=3,\qquad w_2=1
+$$
+
+ise:
+
+$$
+A_w=\frac{3(2)+1(8)}{4}=3.5
+$$
+
+Sonuç $2$'ye daha yakındır, çünkü $2$'ye üç kat fazla ağırlık verdik.
+
+### Geometrik ortalama — Geometric Mean
+
+$$
+G=\sqrt{ab}
+$$
+
+İki boyutlu bir dikdörtgende kenarlar $a$ ve $b$ ise, geometrik ortalama bu dikdörtgenle aynı alana sahip bir karenin kenar uzunluğunu verir:
+
+$$
+G^2=ab
+$$
+
+Dolayısıyla $G$, "toplama"dan çok **çarpımsal büyüklük** ile ilişkilidir.
+
+### Harmonik ortalama — Harmonic Mean
+
+$$
+H=\frac{2ab}{a+b}
+$$
+
+Harmonik ortalamayı anlamanın en iyi yollarından biri, sayıları tersine çevirmektir:
+
+$$
+\frac{1}{H}
+=
+\frac{1}{2}
+\left(\frac{1}{a}+\frac{1}{b}\right)
+$$
+
+Yani harmonik ortalama, sayıların kendilerinin değil **reciprocal (ters) değerlerinin aritmetik ortalamasını alıp tekrar ters çevirmektir**.
+
+Bu yüzden küçük değerler üzerinde çok duyarlıdır.
+
+Örneğin:
+
+$$
+H(2,8)=\frac{2(2)(8)}{2+8}=3.2
+$$
+
+halbuki:
+
+$$
+A(2,8)=5
+$$
+
+### Sayıların eşitsizliği ile ilişki
+
+Pozitif sayılarda daima:
+
+$$
+H\le G\le A
+$$
+
+ve eşitlik ancak:
+
+$$
+a=b
+$$
+
+olduğunda gerçekleşir.
+
+İki sayı için aritmetik ve harmonik ortalama arasındaki farkın çok güzel bir formu vardır:
+
+$$
+A-H
+=
+\frac{(a-b)^2}{2(a+b)}
+$$
+
+Bu formül önemli bir geometrik sezgi verir: $a$ ile $b$ birbirinden uzaklaştıkça, yani dağılım daha dengesiz hale geldikçe, aritmetik ve harmonik ortalama arasındaki fark büyür.
+
+Örneğin $a=b$ ise:
+
+$$
+(a-b)^2=0
+$$
+
+olduğu için:
+
+$$
+A=H
+$$
+
+olur.
+
+Bir sayı çok küçük olduğunda harmonik ortalama da hızla küçülür. Örneğin:
+
+$$
+A(0.9,0.1)=0.5
+$$
+
+ama:
+
+$$
+H(0.9,0.1)=0.18
+$$
+
+çıkar.
+
+Bu, F1 için son derece işe yarayan özelliktir: precision ve recall'dan biri çok küçükse, F1'i de aşağı çeker.
+
+### Klasik bir uygulama sezgisi: hız
+
+İki eşit mesafeyi sırasıyla $a$ ve $b$ hızlarıyla gidersen toplam ortalama hız aritmetik ortalama değil, harmonik ortalamadır:
+
+$$
+V_{avg}=\frac{2ab}{a+b}
+$$
+
+Çünkü düşük hızda geçirilen süre daha fazla olur. Bu, harmonik ortalamanın neden "küçük değerlere daha fazla duyarlı" olduğunu fiziksel olarak da sezgisel hale getirir.
+
+---
+
+## 24.4 Ex00 subject gerçekten "genel F1-score" istiyor mu?
+
+Hayır. Burada önceki tutorial metnindeki ifade düzeltilmelidir.
+
+Ex00 subject'inin açıkça yazdığı gereksinim:
+
+> `Print and display matrix confusion`
+
+ve ayrıca bu egzersizin daha sonra tekrar kullanılacağı belirtiliyor. fileciteturn0file0L55-L66
+
+Subject metninde:
+
+> "genel F1-score'u hesapla"
+
+şeklinde ayrı bir gereksinim yok.
+
+Buna karşılık subject'in **örnek çıktısında** her sınıf için `precision`, `recall`, `f1-score`, `total` ve ayrıca `accuracy` ile toplam örnek sayısı gösteriliyor. Sonra confusion matrix yazdırılıyor. fileciteturn0file0L69-L78
+
+Dolayısıyla senin gördüğün yapı doğru:
+
+```text
+1. sınıf başına classification report benzeri bölüm
+
+             precision recall f1-score total
+Jedi           0.45     0.51   0.48     49
+Sith           0.47     0.41   0.44     51
+
+2. genel accuracy bölümü
+
+accuracy       0.46            100
+
+3. confusion matrix
+
+[[25 24]
+ [30 21]]
+```
+
+Burada `total` sütunu, her gerçek sınıfta kaç örnek olduğunu ifade eder. Başka bir deyişle **support** değeridir.
+
+Dolayısıyla Ex00 için zorunlu olan şey konusunda en güvenli ifade şudur:
+
+> **Subject, confusion matrix'in yanında örnek çıktıda sınıf başına precision/recall/F1 ve accuracy de gösteriyor; fakat ayrı bir "genel F1-score" hesaplanmasını metin olarak açıkça şart koşmuyor.**
+
+Bu nedenle önceki tutorial'daki "Sonra genel bir F1-score isteniyor" cümlesi yanlıştı ve burada düzeltilmiştir.
+
+---
+
+## 24.5 Macro F1 ve Weighted F1 nedir?
+
+Önce her sınıfın kendi F1'i vardır:
+
+$$
+F1_i
+=
+\frac{2P_iR_i}{P_i+R_i}
+$$
+
+Birden fazla sınıfta bu değerleri tek bir sayıyla özetlemek için farklı averaging yöntemleri kullanabiliriz.
+
+### Macro F1
+
+Her sınıfa **eşit ağırlık** verir:
+
+$$
+F1_{macro}
+=
+\frac{1}{K}
+\sum_{i=1}^{K}F1_i
+$$
+
+İki sınıfta:
+
+$$
+F1_{macro}
+=
+\frac{F1_{Jedi}+F1_{Sith}}{2}
+$$
+
+Örneğin:
+
+```text
+Jedi F1 = 0.48
+Sith F1 = 0.44
+```
+
+ise:
+
+$$
+F1_{macro}=\frac{0.48+0.44}{2}=0.46
+$$
+
+Burada sınıfların veri içindeki büyüklükleri önemsenmez. Bir sınıfta 49, diğerinde 51 örnek olması sonucu değiştirmez; iki sınıfa da %50 ağırlık verilir.
+
+### Weighted F1
+
+Her sınıfa kendi **support**'u kadar ağırlık verir:
+
+$$
+F1_{weighted}
+=
+\frac{\sum_{i=1}^{K}n_iF1_i}
+{\sum_{i=1}^{K}n_i}
+$$
+
+Burada $n_i$, sınıfın gerçek örnek sayısıdır.
+
+Subject örneğindeki support değerleri 49 ve 51 olduğundan:
+
+$$
+F1_{weighted}
+=
+\frac{49(0.48)+51(0.44)}{100}
+\approx0.4596
+$$
+
+Yani yaklaşık `0.46`.
+
+### Macro F1 ile weighted F1 arasındaki temel fark
+
+```text
+Macro F1
+→ "Her sınıf benim için eşit derecede önemli."
+
+Weighted F1
+→ "Veride daha fazla bulunan sınıf toplam skorda daha fazla ağırlık taşısın."
+```
+
+Örneğin:
+
+```text
+Sınıf A: 990 örnek, F1 = 0.99
+Sınıf B: 10 örnek,  F1 = 0.20
+```
+
+Macro F1:
+
+$$
+F1_{macro}=\frac{0.99+0.20}{2}=0.595
+$$
+
+Weighted F1:
+
+$$
+F1_{weighted}
+=\frac{990(0.99)+10(0.20)}{1000}
+=0.9821
+$$
+
+İkisi arasındaki büyük fark, weighted F1'in büyük sınıfın performansı tarafından baskın hale gelebildiğini gösterir.
+
+### F1 ile "precision ve recall'un weighted average'ı" arasındaki fark
+
+Burada çok sık yapılan bir karışıklık var.
+
+`weighted F1` demek:
+
+> Her sınıfın F1'ini hesapla, sonra bu F1'leri support ile ağırlıklandır.
+
+Yani:
+
+$$
+F1_{weighted}
+=\sum_i w_iF1_i
+$$
+
+Bu, önce precision ve recall'u ağırlıklandırıp sonra harmonik ortalama almakla aynı şey değildir.
+
+Örneğin genel weighted precision ve weighted recall:
+
+$$
+P_w=\sum_iw_iP_i
+$$
+
+$$
+R_w=\sum_iw_iR_i
+$$
+
+hesaplanıp:
+
+$$
+\frac{2P_wR_w}{P_w+R_w}
+$$
+
+yapıldığında elde edilen değer genel olarak `weighted F1` ile aynı değildir.
+
+Yani sıra önemlidir:
+
+```text
+weighted F1:
+
+per-class P,R
+    ↓
+per-class F1
+    ↓
+weighted average
+```
+
+ile:
+
+```text
+weighted P,R
+    ↓
+harmonic mean
+```
+
+aynı işlem değildir.
+
+### Ex00 açısından hangisini kullanmalıyım?
+
+Burada özellikle dikkatli olmak gerekiyor: **subject metni macro F1 veya weighted F1 istemiyor.** Örnek çıktıda sınıf başına F1 değerleri ve accuracy bulunuyor; hangi genel averaging yönteminin kullanılacağı ayrıca belirtilmiyor. fileciteturn0file0L69-L78
+
+Bu nedenle Ex00'da subject'in örneğini birebir takip ederken öncelikli olarak:
+
+1. sınıf başına TP/TN/FP/FN'den precision, recall ve F1'i hesaplamak,
+2. accuracy'yi hesaplamak,
+3. confusion matrix'i doğru orientation ile yazdırmak
+
+gerekiyor.
+
+Genel bir `F1` üretmek istersen bunun `macro`, `weighted`, `micro` vb. hangi averaging yöntemi olduğu açıkça belirtilmelidir; aksi halde tek bir sayı verip bunun "genel F1" olduğunu söylemek eksik olur.
+
+---
+
+## 24.6 Ex00 subject örneğini confusion matrix üzerinden tamamen çözmek
+
+Subject'in verdiği matrix'i:
+
+```text
+[[25 24]
+ [30 21]]
+```
+
+olarak ele alalım. Burada satırlar **gerçek sınıfı**, sütunlar ise **tahmin edilen sınıfı** temsil ediyor ve sınıf sırası `[Jedi, Sith]` kabul edildiğinde:
+
+```text
+                    Predicted
+                  Jedi     Sith
+Actual Jedi         25       24
+       Sith         30       21
+```
+
+olur. Satır toplamları:
+
+$$
+25+24=49
+$$
+
+ve:
+
+$$
+30+21=51
+$$
+
+olduğu için subject'in `total` değerleriyle uyuşur. fileciteturn0file0L71-L76
+
+### Jedi'yi pozitif kabul edersek
+
+$$
+TP=25,
+\qquad
+FN=24,
+\qquad
+FP=30,
+\qquad
+TN=21
+$$
+
+Precision:
+
+$$
+P_{Jedi}=\frac{25}{25+30}=0.4545...\approx0.45
+$$
+
+Recall:
+
+$$
+R_{Jedi}=\frac{25}{25+24}=0.5102...\approx0.51
+$$
+
+F1:
+
+$$
+F1_{Jedi}
+=
+\frac{2(0.4545)(0.5102)}{0.4545+0.5102}
+\approx0.48
+$$
+
+### Sith'i pozitif kabul edersek
+
+Bu sefer confusion matrix'teki roller değişir:
+
+$$
+TP=21,
+\qquad
+FN=30,
+\qquad
+FP=24,
+\qquad
+TN=25
+$$
+
+Precision:
+
+$$
+P_{Sith}=\frac{21}{21+24}=0.4666...\approx0.47
+$$
+
+Recall:
+
+$$
+R_{Sith}=\frac{21}{21+30}=0.4117...\approx0.41
+$$
+
+F1:
+
+$$
+F1_{Sith}
+=\frac{2(0.4666)(0.4117)}{0.4666+0.4117}
+\approx0.44
+$$
+
+Böylece subject'in örnek çıktısındaki:
+
+```text
+Jedi  0.45  0.51  0.48  49
+Sith  0.47  0.41  0.44  51
+```
+
+satırlarını doğrudan confusion matrix'ten yeniden üretebiliriz. fileciteturn0file0L71-L76
+
+### Accuracy
+
+Accuracy bütün doğru tahminlerin toplam örnek sayısına oranıdır:
+
+$$
+Accuracy
+=
+\frac{TP_{Jedi}+TP_{Sith}}{100}
+=
+\frac{25+21}{100}
+=0.46
+$$
+
+Bu da subject'in `accuracy 0.46 100` satırıyla uyuşur. fileciteturn0file0L71-L76
+
+Bu nedenle Ex00'ın örnek çıktısı, confusion matrix ile birlikte düşünüldüğünde oldukça tutarlı bir **sınıf-başına classification report + accuracy + confusion matrix** çıktısıdır.
+
