@@ -591,8 +591,7 @@ Bu, DS_3 Ex01'de tek tek feature–target correlation değerlerini yazdırma yak
 Pearson correlation:
 
 $$
-r_{XY}=
-\frac{Cov(X,Y)}{\sigma_X\sigma_Y}
+r_{XY}=\frac{Cov(X,Y)}{\sigma_X\sigma_Y}
 $$
 
 ve sonucu:
@@ -793,8 +792,7 @@ gibi değerler görürsün.
 Bir component'in açıkladığı varyans oranı:
 
 $$
-EVR_i=
-\frac{\lambda_i}{\sum_j\lambda_j}
+EVR_i=\frac{\lambda_i}{\sum_j\lambda_j}
 $$
 
 şeklinde ifade edilir.
@@ -1282,9 +1280,7 @@ $$
 Dolayısıyla:
 
 $$
-Gini
-=1-(145/381)^2-(236/381)^2
-\approx0.471.
+Gini=1-(145/381)^2-(236/381)^2\approx0.471.
 $$
 
 Bu, subject'in yazdığı değeri doğrudan açıklıyor.
@@ -1558,8 +1554,7 @@ KNN mesafe kullanır.
 Öklid mesafesi:
 
 $$
-d(x,y)=
-\sqrt{\sum_j(x_j-y_j)^2}.
+d(x,y)=\sqrt{\sum_j(x_j-y_j)^2}.
 $$
 
 Bir feature:
@@ -2761,10 +2756,7 @@ Yorum:
 Aynı şekilde `Sith` için:
 
 $$
-Recall_{Sith}
-=
-\frac{TP_{Sith}}
-{TP_{Sith}+FN_{Sith}}
+Recall_{Sith}=\frac{TP_{Sith}}{TP_{Sith}+FN_{Sith}}
 $$
 
 ### Literatürde bunların ayrı isimleri var mı?
@@ -2936,10 +2928,7 @@ $$
 Harmonik ortalamayı anlamanın en iyi yollarından biri, sayıları tersine çevirmektir:
 
 $$
-\frac{1}{H}
-=
-\frac{1}{2}
-\left(\frac{1}{a}+\frac{1}{b}\right)
+\frac{1}{H}=\frac{1}{2}\left(\frac{1}{a}+\frac{1}{b}\right)
 $$
 
 Yani harmonik ortalama, sayıların kendilerinin değil **reciprocal (ters) değerlerinin aritmetik ortalamasını alıp tekrar ters çevirmektir**.
@@ -2977,9 +2966,7 @@ olduğunda gerçekleşir.
 İki sayı için aritmetik ve harmonik ortalama arasındaki farkın çok güzel bir formu vardır:
 
 $$
-A-H
-=
-\frac{(a-b)^2}{2(a+b)}
+A-H=\frac{(a-b)^2}{2(a+b)}
 $$
 
 Bu formül önemli bir geometrik sezgi verir: $a$ ile $b$ birbirinden uzaklaştıkça, yani dağılım daha dengesiz hale geldikçe, aritmetik ve harmonik ortalama arasındaki fark büyür.
@@ -3078,9 +3065,7 @@ Bu nedenle önceki tutorial'daki "Sonra genel bir F1-score isteniyor" cümlesi y
 Önce her sınıfın kendi F1'i vardır:
 
 $$
-F1_i
-=
-\frac{2P_iR_i}{P_i+R_i}
+F1_i=\frac{2P_iR_i}{P_i+R_i}
 $$
 
 Birden fazla sınıfta bu değerleri tek bir sayıyla özetlemek için farklı averaging yöntemleri kullanabiliriz.
@@ -3090,18 +3075,13 @@ Birden fazla sınıfta bu değerleri tek bir sayıyla özetlemek için farklı a
 Her sınıfa **eşit ağırlık** verir:
 
 $$
-F1_{macro}
-=
-\frac{1}{K}
-\sum_{i=1}^{K}F1_i
+F1_{macro}=\frac{1}{K}\sum_{i=1}^{K}F1_i
 $$
 
 İki sınıfta:
 
 $$
-F1_{macro}
-=
-\frac{F1_{Jedi}+F1_{Sith}}{2}
+F1_{macro}=\frac{F1_{Jedi}+F1_{Sith}}{2}
 $$
 
 Örneğin:
@@ -3124,10 +3104,7 @@ Burada sınıfların veri içindeki büyüklükleri önemsenmez. Bir sınıfta 4
 Her sınıfa kendi **support**'u kadar ağırlık verir:
 
 $$
-F1_{weighted}
-=
-\frac{\sum_{i=1}^{K}n_iF1_i}
-{\sum_{i=1}^{K}n_i}
+F1_{weighted}=\frac{\sum_{i=1}^{K}n_iF1_i}{\sum_{i=1}^{K}n_i}
 $$
 
 Burada $n_i$, sınıfın gerçek örnek sayısıdır.
@@ -3135,10 +3112,7 @@ Burada $n_i$, sınıfın gerçek örnek sayısıdır.
 Subject örneğindeki support değerleri 49 ve 51 olduğundan:
 
 $$
-F1_{weighted}
-=
-\frac{49(0.48)+51(0.44)}{100}
-\approx0.4596
+F1_{weighted}=\frac{49(0.48)+51(0.44)}{100}\approx0.4596
 $$
 
 Yani yaklaşık `0.46`.
@@ -3169,9 +3143,7 @@ $$
 Weighted F1:
 
 $$
-F1_{weighted}
-=\frac{990(0.99)+10(0.20)}{1000}
-=0.9821
+F1_{weighted}=\frac{990(0.99)+10(0.20)}{1000}=0.9821
 $$
 
 İkisi arasındaki büyük fark, weighted F1'in büyük sınıfın performansı tarafından baskın hale gelebildiğini gösterir.
@@ -3187,8 +3159,7 @@ Burada çok sık yapılan bir karışıklık var.
 Yani:
 
 $$
-F1_{weighted}
-=\sum_i w_iF1_i
+F1_{weighted}=\sum_i w_iF1_i
 $$
 
 Bu, önce precision ve recall'u ağırlıklandırıp sonra harmonik ortalama almakla aynı şey değildir.
@@ -3284,13 +3255,7 @@ olduğu için subject'in `total` değerleriyle uyuşur.
 ### Jedi'yi pozitif kabul edersek
 
 $$
-TP=25,
-\qquad
-FN=24,
-\qquad
-FP=30,
-\qquad
-TN=21
+TP=25,\qquad FN=24,\qquad FP=30,\qquad TN=21
 $$
 
 Precision:
@@ -3308,10 +3273,7 @@ $$
 F1:
 
 $$
-F1_{Jedi}
-=
-\frac{2(0.4545)(0.5102)}{0.4545+0.5102}
-\approx0.48
+F1_{Jedi}=\frac{2(0.4545)(0.5102)}{0.4545+0.5102}\approx0.48
 $$
 
 ### Sith'i pozitif kabul edersek
@@ -3319,13 +3281,7 @@ $$
 Bu sefer confusion matrix'teki roller değişir:
 
 $$
-TP=21,
-\qquad
-FN=30,
-\qquad
-FP=24,
-\qquad
-TN=25
+TP=21,\qquad FN=30,\qquad FP=24,\qquad TN=25
 $$
 
 Precision:
@@ -3343,9 +3299,7 @@ $$
 F1:
 
 $$
-F1_{Sith}
-=\frac{2(0.4666)(0.4117)}{0.4666+0.4117}
-\approx0.44
+F1_{Sith}=\frac{2(0.4666)(0.4117)}{0.4666+0.4117}\approx0.44
 $$
 
 Böylece subject'in örnek çıktısındaki:
