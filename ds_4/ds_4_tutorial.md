@@ -2722,7 +2722,7 @@ Subject ayrıca confusion matrix'i de:
  [30 21]]
 ```
 
-şeklinde gösteriyor. fileciteturn0file0L69-L78
+şeklinde gösteriyor.
 
 ### Precision'ın sınıf-spesifik anlamı
 
@@ -2731,10 +2731,7 @@ Bir sınıfı, örneğin `Jedi` sınıfını pozitif olarak seçelim.
 Precision:
 
 $$
-Precision_{Jedi}
-=
-\frac{TP_{Jedi}}
-{TP_{Jedi}+FP_{Jedi}}
+Precision_{Jedi} = \frac{TP_{Jedi}}{TP_{Jedi}+FP_{Jedi}}
 $$
 
 Yorum:
@@ -2744,10 +2741,7 @@ Yorum:
 Aynı şey `Sith` için de yapılabilir:
 
 $$
-Precision_{Sith}
-=
-\frac{TP_{Sith}}
-{TP_{Sith}+FP_{Sith}}
+Precision_{Sith} = \frac{TP_{Sith}}{TP_{Sith}+FP_{Sith}}
 $$
 
 Burada yalnızca pozitif sınıfın adını değiştiriyoruz. Her sınıfı sırayla "pozitif sınıf" gibi ele alıp diğer sınıf(lar)ı "negatif" kabul etmek, literatürde **one-vs-rest (OvR)** bakış açısıyla ifade edilebilir.
@@ -2757,10 +2751,7 @@ Burada yalnızca pozitif sınıfın adını değiştiriyoruz. Her sınıfı sır
 `Jedi` pozitif sınıf kabul edilirse:
 
 $$
-Recall_{Jedi}
-=
-\frac{TP_{Jedi}}
-{TP_{Jedi}+FN_{Jedi}}
+Recall_{Jedi} = \frac{TP_{Jedi}}{TP_{Jedi}+FN_{Jedi}}
 $$
 
 Yorum:
@@ -3043,7 +3034,7 @@ Ex00 subject'inin açıkça yazdığı gereksinim:
 
 > `Print and display matrix confusion`
 
-ve ayrıca bu egzersizin daha sonra tekrar kullanılacağı belirtiliyor. fileciteturn0file0L55-L66
+ve ayrıca bu egzersizin daha sonra tekrar kullanılacağı belirtiliyor.
 
 Subject metninde:
 
@@ -3051,7 +3042,7 @@ Subject metninde:
 
 şeklinde ayrı bir gereksinim yok.
 
-Buna karşılık subject'in **örnek çıktısında** her sınıf için `precision`, `recall`, `f1-score`, `total` ve ayrıca `accuracy` ile toplam örnek sayısı gösteriliyor. Sonra confusion matrix yazdırılıyor. fileciteturn0file0L69-L78
+Buna karşılık subject'in **örnek çıktısında** her sınıf için `precision`, `recall`, `f1-score`, `total` ve ayrıca `accuracy` ile toplam örnek sayısı gösteriliyor. Sonra confusion matrix yazdırılıyor.
 
 Dolayısıyla senin gördüğün yapı doğru:
 
@@ -3244,7 +3235,7 @@ aynı işlem değildir.
 
 ### Ex00 açısından hangisini kullanmalıyım?
 
-Burada özellikle dikkatli olmak gerekiyor: **subject metni macro F1 veya weighted F1 istemiyor.** Örnek çıktıda sınıf başına F1 değerleri ve accuracy bulunuyor; hangi genel averaging yönteminin kullanılacağı ayrıca belirtilmiyor. fileciteturn0file0L69-L78
+Burada özellikle dikkatli olmak gerekiyor: **subject metni macro F1 veya weighted F1 istemiyor.** Örnek çıktıda sınıf başına F1 değerleri ve accuracy bulunuyor; hangi genel averaging yönteminin kullanılacağı ayrıca belirtilmiyor.
 
 Bu nedenle Ex00'da subject'in örneğini birebir takip ederken öncelikli olarak:
 
@@ -3288,7 +3279,7 @@ $$
 30+21=51
 $$
 
-olduğu için subject'in `total` değerleriyle uyuşur. fileciteturn0file0L71-L76
+olduğu için subject'in `total` değerleriyle uyuşur.
 
 ### Jedi'yi pozitif kabul edersek
 
@@ -3364,22 +3355,989 @@ Jedi  0.45  0.51  0.48  49
 Sith  0.47  0.41  0.44  51
 ```
 
-satırlarını doğrudan confusion matrix'ten yeniden üretebiliriz. fileciteturn0file0L71-L76
+satırlarını doğrudan confusion matrix'ten yeniden üretebiliriz.
 
 ### Accuracy
 
 Accuracy bütün doğru tahminlerin toplam örnek sayısına oranıdır:
 
-$$
-Accuracy
-=
-\frac{TP_{Jedi}+TP_{Sith}}{100}
-=
-\frac{25+21}{100}
-=0.46
-$$
+**Accuracy = [TP(Jedi) + TP(Sith)] / 100 = (25 + 21) / 100 = 0.46**
 
-Bu da subject'in `accuracy 0.46 100` satırıyla uyuşur. fileciteturn0file0L71-L76
+Bu da subject'in `accuracy 0.46 100` satırıyla uyuşur.
 
 Bu nedenle Ex00'ın örnek çıktısı, confusion matrix ile birlikte düşünüldüğünde oldukça tutarlı bir **sınıf-başına classification report + accuracy + confusion matrix** çıktısıdır.
 
+
+
+---
+
+# 9. Ex02 Ek Ders — PCA'yı Lineer Cebirden Baştan Kurmak
+
+> **Bu bölümün amacı:** Ex02'de geçen `variance`, `PCA`, `principal component`, `explained variance ratio`, `dimensionality reduction` ve `multicollinearity` kavramlarını yalnızca sezgisel olarak değil, lineer cebir ve istatistik üzerinden matematiksel olarak birbirine bağlamak.
+>
+> **Notasyon:** Bu bölümde bir veri setinde `n` gözlem ve `p` feature olduğunu varsayacağız. Veri matrisi `X ∈ ℝⁿˣᵖ` olsun. PCA'dan önce feature'ların ortalamasını çıkardığımız için merkezlenmiş veri matrisine `X_c` diyeceğiz.
+
+## 9.1 Önce büyük resmi kuralım
+
+Ex02'de aslında şu zincir var:
+
+```text
+çok sayıda feature
+      ↓
+feature'lar arasında korelasyon / redundancy
+      ↓
+verinin aslında daha düşük boyutlu bir yapıda bulunabilmesi
+      ↓
+PCA
+      ↓
+ortogonal yeni eksenler (principal components)
+      ↓
+variance'ı en fazla taşıyan eksenleri seç
+      ↓
+az sayıda component ile veriyi yaklaşık temsil et
+      ↓
+dimensionality reduction
+```
+
+Bu zincirin arkasındaki temel lineer cebir fikri şudur:
+
+> Eğer veri uzayındaki gözlemler `p` boyutlu görünmesine rağmen esas olarak daha az sayıda bağımsız yönde değişiyorsa, veriyi `p` koordinat yerine `k < p` koordinatla yaklaşık olarak ifade edebiliriz.
+
+PCA tam olarak bu "önemli yönleri" sistematik biçimde bulur.
+
+---
+
+## 9.2 Variance tam olarak neyi ölçüyor?
+
+Tek bir feature düşünelim:
+
+`x₁, x₂, ..., xₙ`
+
+Ortalama:
+
+`x̄ = (1/n) Σ xᵢ`
+
+Örnek variance:
+
+`s² = [1/(n−1)] Σ (xᵢ − x̄)²`
+
+Buradaki fikir basit ama PCA açısından çok önemlidir: `xᵢ − x̄`, her gözlemin ortalamadan ne kadar uzak olduğunu söyler. Bu uzaklıkların karesinin ortalaması ise feature'ın ne kadar değişken olduğunu ölçer.
+
+Örneğin bütün gözlemler:
+
+```text
+5, 5, 5, 5, 5
+```
+
+ise variance = 0'dır. Feature hiç değişmiyordur.
+
+Buna karşılık:
+
+```text
+1, 3, 5, 7, 9
+```
+
+gibi değerler ortalama etrafında daha fazla yayıldığı için variance daha büyüktür.
+
+PCA'nın temel fikri şu soruya dönüşür:
+
+> Feature eksenlerinden başka bir yöne bakarsam, verinin değişkenliği hangi yönde en büyük olur?
+
+İşte principal component kavramı burada ortaya çıkar.
+
+---
+
+## 9.3 Bir feature'ın başka feature'larla "açıklanması" ne demek?
+
+Buradaki **açıklamak**, nedensellik anlamına gelmez.
+
+Örneğin iki feature arasında yaklaşık olarak:
+
+`X₂ ≈ 3 X₁`
+
+gibi bir ilişki varsa, `X₂` hakkında bilgi sahibi olduğumuzda `X₁` hakkında da önemli miktarda bilgi elde ederiz.
+
+Daha genel olarak:
+
+`X₂ ≈ aX₁ + b`
+
+ise `X₂`, `X₁` ile güçlü biçimde doğrusal ilişkilidir.
+
+Bu durumda iki feature'ın taşıdığı bilginin önemli bir bölümü **aynı doğrultuda** olabilir.
+
+Örneğin iki boyutlu veriyi düşün:
+
+```text
+X₂
+↑
+|              •
+|           •
+|        •
+|     •
+|  •
++--------------------→ X₁
+```
+
+Noktalar iki boyutlu bir uzayda olmasına rağmen neredeyse tek bir doğru üzerinde duruyor.
+
+Yani veri biçimsel olarak 2 boyutlu olsa da esas değişimin büyük bölümü tek bir yönde gerçekleşiyor.
+
+PCA'nın yapacağı şey bu ana yönü bulmaktır.
+
+---
+
+## 9.4 Linear span ile doğrudan bağlantı
+
+Bir vektörün veya vektör kümesinin **linear span'i**, o vektörlerin bütün lineer kombinasyonlarının kümesidir.
+
+İki vektör `v₁` ve `v₂` için:
+
+`span{v₁, v₂} = {a v₁ + b v₂ : a,b ∈ ℝ}`
+
+Eğer `v₂ = 3v₁` ise ikinci vektör yeni bir yön getirmez:
+
+`span{v₁, v₂} = span{v₁}`
+
+Dolayısıyla görünürde iki feature/yön olsa bile yalnızca **bir bağımsız yön** vardır.
+
+Bu, PCA'nın neden boyut azaltabildiğini anlamanın en temiz lineer cebir açıklamalarından biridir.
+
+---
+
+## 9.5 Linear independence ve PCA
+
+Vektörler lineer bağımsızsa hiçbir vektör diğerlerinin lineer kombinasyonu olarak yazılamaz.
+
+Örneğin:
+
+`v₁ = (1, 0)`
+
+`v₂ = (0, 1)`
+
+lineer bağımsızdır ve:
+
+`span{v₁,v₂} = ℝ²`
+
+olur.
+
+Ama:
+
+`v₁ = (1, 1)`
+
+`v₂ = (2, 2)`
+
+için:
+
+`v₂ = 2v₁`
+
+olduğu için bağımlıdırlar. Span yalnızca bir boyutludur.
+
+PCA'nın daha gerçekçi durumda yaptığı şey genellikle tam bağımlılığı bulmak değil, **yaklaşık bağımlılık / redundancy** bulmaktır.
+
+Örneğin:
+
+`v₂ ≈ 2v₁`
+
+ise veri tam olarak tek boyutlu değildir ama ikinci yönün taşıdığı yeni bilgi az olabilir.
+
+İşte explained variance burada devreye girer.
+
+---
+
+## 9.6 Matrix rank ve PCA ile bağlantısı
+
+Bir matrisin **rank'i**, sütun uzayının boyutudur; eşdeğer olarak lineer bağımsız sütunların maksimum sayısıdır.
+
+Eğer:
+
+`rank(X) = r < p`
+
+için `X` p feature içeriyorsa, p feature'ın hepsi bağımsız bilgi yönleri değildir.
+
+Örneğin 10 feature içeren bir veri matrisi düşünelim ama:
+
+`rank(X) = 3`
+
+olsun.
+
+Bu durumda veri 10 koordinatla temsil ediliyor olsa da aslında yalnızca 3 bağımsız doğrultuya sahiptir.
+
+PCA bu yapıyı ortaya çıkarabilir.
+
+Ancak önemli bir ayrım var:
+
+> **PCA'nın amacı genel olarak matrix rank'i hesaplamak değildir.**
+
+Özellikle gerçek veride noise bulunduğunda rank çoğu zaman matematiksel olarak tam `p` olabilir. Buna rağmen variance'ın büyük kısmı ilk birkaç component'te toplanabilir.
+
+Bu yüzden PCA daha çok **effective dimensionality / yaklaşık boyut** fikrini ortaya çıkarır.
+
+---
+
+## 9.7 Nullity ile bağlantı
+
+Rank-nullity theorem:
+
+`rank(A) + nullity(A) = number of columns of A`
+
+Yani `A`, `n × p` ise:
+
+`rank(A) + nullity(A) = p`
+
+Eğer `rank(X) = 3` ve `p = 10` ise:
+
+`nullity(X) = 7`
+
+olur.
+
+Bu, 7 bağımsız sütun doğrultusunun veri tarafından gerçekten kullanılmadığı anlamına gelir.
+
+PCA açısından sezgi şudur:
+
+```text
+p = 10 görünür boyut
+        ↓
+veri yapısının önemli kısmı
+3 bağımsız yönde
+        ↓
+7 yön gereksiz / redundant olabilir
+```
+
+Fakat tekrar vurgulayalım: Gerçek noisy veri için PCA'nın ilk birkaç component'te %90 variance toplaması, matematiksel rank'in gerçekten 3 olduğu anlamına gelmez.
+
+---
+
+## 9.8 Orthogonality neden PCA'da ortaya çıkıyor?
+
+İki vektörün orthogonal olması:
+
+`u · v = 0`
+
+olmasıdır.
+
+Öklidyen uzayda bu, vektörlerin birbirine dik olmasıdır.
+
+PCA component'leri birbirine orthogonal seçilir.
+
+Neden?
+
+Çünkü PC1'in taşıdığı yönü bulduktan sonra PC2'nin aynı yönün biraz farklı bir versiyonunu tekrar seçmesini istemeyiz. PC2'nin PC1'e dik olması, ikinci component'in gerçekten **yeni bir doğrultu** aramasını sağlar.
+
+Böylece:
+
+`PC₁ ⟂ PC₂ ⟂ PC₃ ...`
+
+şeklinde orthogonal bir koordinat sistemi elde edilir.
+
+Bu, PCA'nın "bilgiyi tekrar tekrar saymasını" engelleyen temel yapılardan biridir.
+
+---
+
+## 9.9 Gram-Schmidt ile bağlantı: benzerlik var ama aynı işlem değil
+
+Burada hissettiğin bağlantı gerçekten var, fakat **PCA = Gram-Schmidt değildir**.
+
+Gram-Schmidt'in problemi şudur:
+
+> Verilen lineer bağımsız vektörlerden orthogonal bir baz oluştur.
+
+Örneğin `v₁, v₂` verildiğinde önce:
+
+`u₁ = v₁`
+
+sonra:
+
+`u₂ = v₂ − proj_{u₁}(v₂)`
+
+alınır.
+
+Böylece:
+
+`u₁ · u₂ = 0`
+
+elde edilir.
+
+PCA'nın problemi ise farklıdır:
+
+> Verinin variance'ını mümkün olduğunca fazla taşıyan orthogonal yönleri bul.
+
+Yani Gram-Schmidt **verilmiş yönleri orthogonalize eder**; PCA ise **veriden optimal yönleri seçer**.
+
+Aralarındaki ortak nokta orthogonal bir baz/koordinat sistemi fikridir.
+
+---
+
+## 9.10 PCA'nın matematiksel çekirdeği: variance'ı maksimize etmek
+
+Şimdi PCA'nın en önemli kısmına gelelim.
+
+Merkezlenmiş bir veri matrisi `X_c` düşünelim. Birim uzunlukta bir yön vektörü `w` seçelim:
+
+`||w|| = 1`
+
+Her gözlemi bu yöne projekte edersek elde edilen yeni koordinatlar:
+
+`z = X_c w`
+
+olur.
+
+Bu yeni feature'a PCA dilinde bir **principal component score** diyebiliriz.
+
+Bu yeni değişkenin sample variance'ı:
+
+`Var(z) = [1/(n−1)] zᵀz`
+
+olur.
+
+`z = X_c w` olduğundan:
+
+`Var(z) = [1/(n−1)] (X_c w)ᵀ(X_c w)`
+
+ve:
+
+`Var(z) = [1/(n−1)] wᵀ X_cᵀ X_c w`
+
+elde edilir.
+
+Şimdi covariance matrix'i tanımlayalım:
+
+`Σ = [1/(n−1)] X_cᵀ X_c`
+
+Böylece:
+
+`Var(z) = wᵀ Σ w`
+
+olur.
+
+İşte PCA'nın merkezi problemi artık son derece açık:
+
+> Birim uzunluktaki `w` vektörleri arasında `wᵀΣw` değerini maksimum yapan yönü bul.
+
+Yani:
+
+`maximize  wᵀΣw`
+
+subject to:
+
+`wᵀw = 1`
+
+Bu optimizasyon problemi PCA'nın matematiksel temelidir.
+
+---
+
+## 9.11 Neden eigenvector çıkıyor? — Kısa ispat
+
+Lagrange fonksiyonunu yazalım:
+
+`L(w, λ) = wᵀΣw − λ(wᵀw − 1)`
+
+Türev alıp sıfıra eşitleyelim:
+
+`∂L/∂w = 2Σw − 2λw = 0`
+
+Dolayısıyla:
+
+`Σw = λw`
+
+elde edilir.
+
+Bu tam olarak **eigenvalue/eigenvector denklemi**dir.
+
+Dolayısıyla:
+
+> PCA component direction'ları covariance matrix'in eigenvector'larıdır.
+
+Ve ilgili eigenvalue:
+
+`λ = wᵀΣw`
+
+olduğu için, o eigenvector yönündeki variance'ı temsil eder.
+
+Bu nedenle eigenvalue'lar büyükten küçüğe sıralanır:
+
+`λ₁ ≥ λ₂ ≥ ... ≥ λₚ`
+
+ve:
+
+`PC1` = en büyük eigenvalue'ya karşılık gelen eigenvector,
+
+`PC2` = ikinci en büyük eigenvalue'ya karşılık gelen eigenvector,
+
+vb.
+
+---
+
+## 9.12 İşte "variance'ı component açıklıyor" cümlesinin kesin matematiksel anlamı
+
+Buradaki "açıklamak" ifadesi artık netleştirilebilir.
+
+PC1 yönündeki projected data:
+
+`z₁ = X_c w₁`
+
+olsun.
+
+Bunun variance'ı:
+
+`Var(z₁) = λ₁`
+
+olur.
+
+Aynı şekilde:
+
+`Var(z₂) = λ₂`
+
+vb.
+
+Toplam feature variance'ı ise covariance matrix'in diagonal elemanlarının toplamıdır:
+
+`trace(Σ) = λ₁ + λ₂ + ... + λₚ`
+
+Burada kullandığımız temel lineer cebir sonucu:
+
+> Bir simetrik matrisin eigenvalue'larının toplamı, matrisin trace'ine eşittir.
+
+Covariance matrix'in trace'i ise feature variance'larının toplamıdır:
+
+`trace(Σ) = Var(X₁) + Var(X₂) + ... + Var(Xₚ)`
+
+Dolayısıyla PC1'in toplam variance içindeki payı:
+
+`EVR₁ = λ₁ / (λ₁ + ... + λₚ)`
+
+olur.
+
+İşte **explained variance ratio** tam olarak budur.
+
+---
+
+## 9.13 "İlk 7 component toplam variance'ın %92'sini açıklıyor" ne demek?
+
+Artık bu cümleyi matematiksel olarak yazabiliriz:
+
+`EVR₁ + EVR₂ + ... + EVR₇ ≈ 0.92`
+
+ve eşdeğer olarak:
+
+`(λ₁ + λ₂ + ... + λ₇) / (λ₁ + ... + λₚ) ≈ 0.92`
+
+Bu, orijinal verinin toplam varyasyonunun %92'sinin ilk 7 orthogonal projection direction üzerinde bulunduğu anlamına gelir.
+
+Başka bir ifadeyle, veriyi yalnızca ilk 7 PC koordinatıyla temsil ettiğimizde, variance açısından toplam yapının yaklaşık %92'sini koruyoruz.
+
+Burada **"PC1 verinin %44.9'unu açıklıyor"** demek:
+
+`λ₁ / trace(Σ) ≈ 0.449`
+
+demektir.
+
+Bu, "PC1 feature'ların %44.9'unu oluşturuyor" veya "gözlemlerin %44.9'u PC1'de" demek değildir.
+
+Açıklanan şey **variance**'tır.
+
+---
+
+## 9.14 Neden eigenvalue'lar toplanabiliyor? Spectral decomposition
+
+Covariance matrix `Σ`, simetrik ve pozitif yarı-belirli bir matristir.
+
+Spectral theorem sayesinde:
+
+`Σ = Q Λ Qᵀ`
+
+şeklinde yazılabilir.
+
+Burada:
+
+- `Q` = orthonormal eigenvector'ların matrisi,
+- `Λ` = diagonal eigenvalue matrisi.
+
+Yani PCA aslında covariance matrix'i yeni bir orthogonal coordinate system'de diagonal hale getirir.
+
+Orijinal koordinatlarda feature'lar arasında covariance olabilir. PCA koordinatlarında ise covariance matrix:
+
+```text
+Λ =
+[ λ₁   0    0   ... ]
+[  0  λ₂    0   ... ]
+[  0   0   λ₃   ... ]
+[ ...             ...]
+```
+
+şeklindedir.
+
+Diagonal dışındaki değerler 0 olduğu için principal components birbirleriyle uncorrelated'dır.
+
+Bu, orthogonality ile covariance structure arasındaki çok önemli bağlantıdır.
+
+---
+
+## 9.15 PCA ile dimensionality reduction nasıl yapılıyor?
+
+Başlangıçta her gözlem `p` feature ile temsil ediliyor:
+
+`x ∈ ℝᵖ`
+
+PCA'dan sonra ilk `k` eigenvector'ı seçelim:
+
+`w₁, ..., w_k`
+
+Bunları sütun olarak bir matriste toplayalım:
+
+`W_k = [w₁ w₂ ... w_k]`
+
+Yeni koordinatlar:
+
+`z = W_kᵀ(x − μ)`
+
+olur.
+
+Burada:
+
+- `x` = orijinal gözlem,
+- `μ` = feature mean vector,
+- `W_k` = seçilen ilk `k` principal directions,
+- `z ∈ ℝᵏ` = reduced representation.
+
+Eğer `k < p` ise boyut azaltılmıştır.
+
+Örneğin:
+
+```text
+30 original features
+        ↓ PCA
+7 principal components
+```
+
+artık her gözlemi 30 sayı yerine 7 sayı ile temsil ediyoruz.
+
+---
+
+## 9.16 Bu gerçekten bilgi kaybı değil mi?
+
+Evet, `k < p` olduğunda genel olarak bir miktar bilgi kaybı vardır.
+
+Çünkü:
+
+`PC₈, PC₉, ..., PCₚ`
+
+gibi yönleri atıyoruz.
+
+Ama eğer bunların toplam variance katkısı yalnızca %8 ise, variance açısından %92'lik kısmı korumuş oluruz.
+
+Örneğin:
+
+`EVR₁ + ... + EVR₇ = 0.92`
+
+ise discarded components:
+
+`EVR₈ + ... + EVRₚ = 0.08`
+
+olur.
+
+Dolayısıyla PCA'nın yaptığı şey:
+
+> "Hiç bilgi kaybetmeden boyutu azaltmak"
+
+değil;
+
+> "Variance açısından daha az önemli yönleri atarak daha düşük boyutlu bir yaklaşık temsil oluşturmak"
+
+dır.
+
+Bu ayrım çok önemlidir.
+
+---
+
+## 9.17 Reconstruction error ile aynı fikir başka türlü nasıl görülür?
+
+İlk `k` component ile yaklaşık yeniden oluşturma:
+
+`x̂ = μ + W_k z`
+
+şeklindedir.
+
+Burada `x̂`, orijinal `x`'in PCA ile yeniden oluşturulmuş yaklaşık halidir.
+
+Eğer bütün `p` component'i kullanırsak ve rank problemi yoksa tam temsil elde ederiz.
+
+`k < p` kullanırsak bazı yönleri atmış oluruz ve:
+
+`x ≠ x̂`
+
+olabilir.
+
+PCA'nın güçlü tarafı şudur:
+
+> İlk `k` orthogonal direction seçimi, toplam squared reconstruction error'ı minimize eden en iyi `k` boyutlu linear subspace'i verir.
+
+Bu, PCA'nın yalnızca "variance yüksek yönleri bulmak" değil, aynı zamanda **en iyi düşük boyutlu lineer yaklaşık** oluşturmak olduğunu gösterir.
+
+Bu sonuç, PCA'yı dimensionality reduction yöntemi yapan temel matematiksel gerekçelerden biridir.
+
+---
+
+## 9.18 Multicollinearity nedir?
+
+**Multicollinearity**, özellikle regression gibi modellerde predictor/feature'ların birbirleriyle güçlü doğrusal ilişkiler içinde olmasıdır.
+
+Basit örnek:
+
+`X₂ ≈ 2X₁`
+
+olduğunda `X₁` ve `X₂` neredeyse aynı bilgiyi taşır.
+
+Üç feature için:
+
+`X₃ ≈ 4X₁ − 2X₂`
+
+gibi bir ilişki varsa daha genel bir linear dependency ortaya çıkar.
+
+Tam ilişki durumunda:
+
+`a₁X₁ + a₂X₂ + ... + aₚXₚ = 0`
+
+olacak şekilde, hepsi sıfır olmayan katsayılar bulunabilir.
+
+Bu doğrudan **linear dependence** kavramıdır.
+
+Dolayısıyla multicollinearity ile linear algebra arasında doğrudan bağlantı vardır.
+
+---
+
+## 9.19 Multicollinearity neden problem?
+
+Örneğin regression model:
+
+`y = β₁X₁ + β₂X₂ + ε`
+
+olsun.
+
+Eğer `X₂ ≈ X₁` ise model şu soruyla karşılaşır:
+
+> Gözlenen etkinin ne kadarını β₁, ne kadarını β₂ açıklıyor?
+
+İki feature neredeyse aynı bilgiyi taşıdığı için katsayılar kararsız hale gelebilir.
+
+Küçük veri değişiklikleri bile `β₁` ve `β₂` tahminlerinde büyük değişiklikler yaratabilir.
+
+Buna rağmen modelin toplam prediction performansı mutlaka kötü olmak zorunda değildir. Problem özellikle coefficient interpretation ve coefficient stability tarafında belirginleşir.
+
+---
+
+## 9.20 Multicollinearity ile PCA arasındaki bağlantı
+
+Şimdi Ex02 ile Ex03 arasındaki bağlantı netleşiyor:
+
+```text
+Feature'lar
+   ↓
+kuvvetli doğrusal ilişkiler
+   ↓
+multicollinearity / redundancy
+   ↓
+covariance matrix'te güçlü off-diagonal değerler
+   ↓
+PCA
+   ↓
+aynı bilgiyi taşıyan feature'ların varyansı birkaç principal direction'da toplanabilir
+```
+
+Örneğin:
+
+```text
+X₁ ─────────┐
+            ├── aynı ana doğrultu ──→ PC1
+X₂ ─────────┘
+```
+
+PCA burada `X₁` ve `X₂`'yi iki ayrı feature olarak tutmak yerine, onların ortak varyasyon yönünü tek bir principal component'te yoğunlaştırabilir.
+
+Bu yüzden PCA, correlated feature'lar bulunduğunda özellikle anlamlı olabilir.
+
+---
+
+## 9.21 VIF ile bağlantı
+
+Ex03'te göreceğin **VIF — Variance Inflation Factor** ise multicollinearity'yi başka bir açıdan ölçer.
+
+Bir feature'ı diğer feature'larla regression yapalım ve elde edilen `R²` değerini düşünelim.
+
+VIF:
+
+`VIF_j = 1 / (1 − R²_j)`
+
+şeklindedir.
+
+Eğer `X_j`, diğer feature'larla çok iyi açıklanabiliyorsa `R²_j` 1'e yaklaşır ve:
+
+`1 − R²_j → 0`
+
+dolayısıyla:
+
+`VIF_j → ∞`
+
+olur.
+
+Bu nedenle VIF'in temel fikri:
+
+> "Bu feature'ın bilgisinin ne kadarı diğer feature'ların doğrusal kombinasyonları tarafından zaten açıklanabiliyor?"
+
+sorusudur.
+
+Bu, senin "bir feature'ın diğer feature'larla açıklanması" konusundaki sezginin istatistiksel karşılığıdır.
+
+---
+
+## 9.22 PCA ile VIF aynı şeyi mi yapıyor?
+
+Hayır.
+
+```text
+VIF
+↓
+Her feature için ayrı ayrı
+multicollinearity ölçer.
+```
+
+PCA ise:
+
+```text
+Bütün feature setine birlikte bakar
+↓
+Yeni orthogonal axes üretir
+↓
+variance'ı bu axes'lere dağıtır
+↓
+istersen ilk k component'i seçerek boyutu azaltır.
+```
+
+VIF feature'ları **orijinal koordinat sisteminde** değerlendirir.
+
+PCA ise yeni bir koordinat sistemi oluşturur.
+
+Bu ayrım çok önemlidir.
+
+---
+
+## 9.23 PCA, covariance matrix'i neden diagonal hale getiriyor?
+
+Bu sorunun lineer cebir cevabı aslında bütün konuyu birleştiriyor.
+
+Covariance matrix:
+
+`Σ = QΛQᵀ`
+
+olduğunda yeni koordinat:
+
+`z = Qᵀ(x − μ)`
+
+olsun.
+
+Yeni covariance matrix:
+
+`Cov(z) = QᵀΣQ`
+
+olur.
+
+`Σ = QΛQᵀ` yazarsak:
+
+`Cov(z) = Qᵀ(QΛQᵀ)Q`
+
+ve orthonormality nedeniyle:
+
+`QᵀQ = I`
+
+olduğundan:
+
+`Cov(z) = Λ`
+
+elde edilir.
+
+Yani PCA'nın yeni koordinat sisteminde covariance matrix diagonal hale gelir.
+
+Bu nedenle principal components birbirleriyle uncorrelated olur.
+
+Bu sonuç, PCA'nın "feature'ları birbirinden bağımsız yapması" şeklinde yanlış anlaşılmamalıdır. PCA **uncorrelated** component'ler üretir; genel olarak statistical independence garanti etmez.
+
+---
+
+## 9.24 Şimdi Gram-Schmidt, rank, span, orthogonality ve PCA'yı tek resimde birleştirelim
+
+```text
+                    LINEAR ALGEBRA
+                          │
+          ┌───────────────┼────────────────┐
+          │               │                │
+       span         linear independence   orthogonality
+          │               │                │
+          │             rank               │
+          │               │                │
+          └──────────┬────┴────────────────┘
+                     │
+              covariance matrix
+                     │
+              eigenvectors
+                     │
+                     ↓
+                    PCA
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+    principal directions   eigenvalues
+          │                     │
+          │               variance amount
+          │                     │
+          └──────────┬──────────┘
+                     ↓
+          explained variance ratio
+                     ↓
+             choose first k PCs
+                     ↓
+        dimensionality reduction
+```
+
+Gram-Schmidt ise bu şemanın yanında şöyle durur:
+
+```text
+Gram-Schmidt:
+    verilen bağımsız yönler
+             ↓
+    orthogonalize et
+             ↓
+    orthogonal basis
+
+PCA:
+    veri + covariance structure
+             ↓
+    variance'ı optimize eden yönleri bul
+             ↓
+    orthogonal principal directions
+```
+
+Dolayısıyla senin sezgin doğru: **aynı lineer cebir dünyasının kavramlarından bahsediyoruz**, ancak her algoritmanın problemi farklıdır.
+
+---
+
+## 9.25 Ex02'deki %92 sonucunu artık nasıl okumalıyız?
+
+Örneğin subject'teki yaklaşık değerleri:
+
+```text
+PC1   44.896%
+PC2   18.472%
+PC3    9.183%
+PC4    6.446%
+...
+PC7    ...
+```
+
+şeklinde düşün.
+
+Cumulative explained variance yaklaşık %92'ye geldiğinde matematiksel anlam:
+
+`(λ₁ + λ₂ + ... + λ₇) / (λ₁ + ... + λₚ) ≈ 0.92`
+
+olmasıdır.
+
+Yani 7 yeni orthogonal koordinat, orijinal `p` boyutlu verideki toplam variance'ın yaklaşık %92'sini taşıyor.
+
+Bu nedenle:
+
+```text
+p original dimensions
+        ↓
+7 principal directions
+        ↓
+≈ 92% of total variance retained
+```
+
+diyebiliriz.
+
+Ama **"7 feature seçtik" dememeliyiz.** Çünkü PC'ler orijinal feature'lar değildir. Her PC, bütün orijinal feature'ların lineer kombinasyonudur:
+
+`PC₁ = w₁₁X₁ + w₂₁X₂ + ... + wₚ₁Xₚ`
+
+ve benzer şekilde diğer component'ler de vardır.
+
+Bu nedenle PCA'nın yaptığı şey feature selection değil, öncelikle **feature transformation / coordinate transformation**; ilk `k` component'i tutarsak bunun sonucunda **dimensionality reduction** yapmış oluruz.
+
+---
+
+## 9.26 En önemli kavramsal ayrımlar
+
+### PCA
+
+Verinin variance'ını mümkün olduğunca büyük miktarda taşıyan yeni orthogonal koordinat eksenlerini bulur.
+
+### Principal component
+
+PCA tarafından bulunan yeni yön/eksendir. Gözlemlerin bu eksendeki koordinatlarına da component scores denir.
+
+### Eigenvalue
+
+İlgili principal direction boyunca taşınan variance miktarıdır.
+
+### Explained variance ratio
+
+İlgili eigenvalue'nun toplam eigenvalue'lara oranıdır:
+
+`EVRᵢ = λᵢ / Σⱼ λⱼ`
+
+### Cumulative explained variance
+
+İlk `k` component'in birlikte taşıdığı variance oranıdır:
+
+`CEV(k) = Σᵢ₌₁ᵏ EVRᵢ`
+
+### Dimensionality reduction
+
+`p` boyutlu veriyi `k < p` boyutlu bir temsil ile yaklaşık olarak ifade etmektir.
+
+### Multicollinearity
+
+Feature'ların güçlü doğrusal ilişkiler nedeniyle birbirlerinden büyük ölçüde tahmin edilebilmesidir.
+
+### Linear span
+
+Verilen vektörlerin bütün lineer kombinasyonlarının oluşturduğu uzaydır.
+
+### Linear independence
+
+Bir vektörün diğerlerinin lineer kombinasyonu olarak yazılamaması; hiçbir non-trivial lineer ilişkinin bulunmamasıdır.
+
+### Rank
+
+Bağımsız doğrultuların sayısını ölçer.
+
+### Nullity
+
+Kolon sayısından rank çıkarıldığında kalan null-space boyutudur.
+
+### Orthogonality
+
+İki vektörün inner product'ının sıfır olmasıdır.
+
+### Gram-Schmidt
+
+Verilmiş lineer bağımsız vektörleri orthogonal bir baza dönüştürür.
+
+### PCA ile Gram-Schmidt arasındaki temel fark
+
+Gram-Schmidt:
+
+`given directions → orthogonalize`
+
+PCA:
+
+`data → optimal variance directions → orthogonal components`
+
+---
+
+## 9.27 Ex02 için zihinsel model
+
+Bu bölümü tek cümlelik bir zincire indirgersek:
+
+> **Feature'lar arasında redundancy varsa veri uzayında bazı doğrultular diğerlerinden çok daha fazla varyasyon taşır; covariance matrix bu yapıyı kodlar; onun eigenvector'ları bu önemli orthogonal doğrultuları verir; eigenvalue'lar bu doğrultuların taşıdığı variance'ı verir; eigenvalue oranları explained variance ratio'yu verir; ilk birkaç component yeterli variance taşıyorsa bu component'leri tutarak dimensionality reduction yapılabilir.**
+
+İşte Ex02'nin arkasındaki lineer cebirsel yapı budur.
