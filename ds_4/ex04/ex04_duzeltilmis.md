@@ -1,0 +1,2112 @@
+# Ex04 --- Decision Tree / Random Forest ile Sınıflandırma
+
+## 0. Subject ne istiyor?
+
+Exercise 04'te görev, **Decision Tree Classifier veya Random Forest
+Classifier** kullanarak bir sınıflandırma modeli kurmaktır.
+
+Program:
+
+1. İlk argüman olarak `Train_knight.csv` dosyasını almalı.
+2. İkinci argüman olarak `Test_knight.csv` dosyasını almalı.
+3. Modeli eğitip `Test_knight.csv` için `Jedi` / `Sith` tahminleri üretmeli.
+4. Tahminleri `Tree.txt` dosyasına, **satır başına bir tahmin** olacak şekilde yazmalı.
+5. Ağacı grafik olarak göstermeli.
+6. Modelin F1-score'u en az **%90** olmalı.
+
+Subject açıkça **Decision Tree veya Random Forest** seçeneklerinden birine izin
+veriyor. Örnek çıktı/görsel ise bir Decision Tree gösteriyor.
+
+Subject'in örnek görseli **Decision Tree**'dir. `X[27] <= 0.489`,
+`gini = ...`, `samples = ...`, `value = ...` biçimindeki düğümler tek
+bir ağacın düğümleridir. Random Forest ise aynı exercise içinde izin
+verilen ikinci alternatiftir.
+
+Genel pipeline:
+
+```text
+Train_knight.csv
+       │
+       ▼
+Training + Validation
+       │
+       ▼
+Decision Tree / Random Forest
+       │
+       ▼
+Training üzerinde fit
+       │
+       ▼
+Validation üzerinde prediction
+       │
+       ▼
+F1-score ölç
+       │
+       ▼
+hyperparameter / model değiştir
+       │
+       └──────────────► tekrar dene
+                         │
+                         ▼
+                    en iyi yapı
+                         │
+                         ▼
+              tüm labeled veriyle final fit
+                         │
+                         ▼
+                 Test_knight.csv
+                         │
+                         ▼
+                     prediction
+                         │
+                         ▼
+                      Tree.txt
+```
+
+Temel fikir: **training verisini ezberlemek ile daha önce görülmemiş
+veride doğru sınıflandırmak aynı şey değildir.**
+
+------------------------------------------------------------------------
+
+# 1. Decision Tree nedir?
+
+Decision Tree, veriyi ardışık koşullarla bölerek sınıflandıran bir
+modeldir.
+
+İki feature olsun:
+
+$$ X=(x_1,x_2) $$ ve sınıflar `Jedi`/`Sith` olsun. Model örneğin:
+```text
+                    x1 <= 0.5 ?
+                    /         \
+                  Evet       Hayır
+                   /            \
+             x2 <= 0.3 ?       Sith
+              /       \
+           Evet       Hayır
+            /            \
+          Jedi           Sith
+```
+
+şeklinde bir karar yapısı öğrenebilir. Matematiksel olarak Decision Tree tek bir global doğrusal denklem öğrenmez. Feature uzayını parçalara ayırır. Örneğin: $$ x_1\le0.5 $$ R² düzleminde dikey bir sınır oluşturur; ardından bir bölgede: $$ x_2\le0.3 $$ ile yeni bir bölme yapılabilir. Böylece model, her leaf bölgesine bir sınıf atayan **parçalı karar fonksiyonu** oluşturur. Bu nedenle tree modelleri doğrusal olmayan ilişkileri ve feature etkileşimlerini yakalayabilir. Ayrıca Decision Tree için StandardScaler/MinMaxScaler genellikle zorunlu değildir; çünkü split'in temelinde değerlerin sırası ve threshold vardır.
+
+---
+
+# 2. Tree nasıl öğreniyor?
+
+Bir node'da örnekler vardır. Model şu soruyu sorar:
+> Hangi feature ve hangi threshold, bu örnekleri sınıf bakımından daha
+> homojen iki gruba ayırıyor? Örneğin aday split:
+```text
+X[27] <= 0.489
+```
+
+olsun. Split sonrası:
+```text
+Left : Jedi=38, Sith=2
+Right: Jedi=12, Sith=48
+```
+
+gibi gruplar oluşuyorsa çocuklar oldukça saftır. Tree, bu saflığı Gini impurity gibi bir ölçüyle sayısallaştırır ve impurity'yi en çok azaltan split'i seçer.
+
+---
+
+# 3. Gini nedir?
+
+## Soru 2 --- Gini'nin açılımı ve iyi/kötü değerleri
+
+Buradaki Gini, **Gini impurity** (Gini safsızlığı) anlamındadır. Gelir eşitsizliğini ölçen klasik Gini coefficient ile aynı ölçü değildir. Bir node'da k sınıf olsun ve k'ncı sınıfın oranı `p_k` olsun. Gini impurity: $$ Gini=1-\sum_kp_k^2 $$ İki sınıfta: $$ Gini=1-p_1^2-p_2^2 $$ olur.
+
+### Neden `1-p1-p2` değil?
+
+Çünkü olasılıkların toplamı 1'dir: $$ p_1+p_2=1 $$ dolayısıyla: $$ 1-p_1-p_2=0 $$ her iki sınıflı node için daima sıfır olur. Örneğin `p1=0.5`, `p2=0.5` için bu ifade 0 verir; oysa node maksimum derecede karışıktır. Bu nedenle doğru impurity formülü kareleri içerir. Gini ayrıca: $$ Gini=p_1(1-p_1)+p_2(1-p_2) $$ şeklinde de yazılabilir. Genel durumda: $$ Gini=\sum_kp_k(1-p_k) $$ olur.
+
+### Gini'nin iyi/kötü değeri
+
+İki sınıflı problemde: $$ 0\le Gini\le0.5 $$ olur. Tam saf node:
+```text
+Jedi=100, Sith=0
+```
+
+ise: $$ Gini=1-1^2-0^2=0 $$ olur. Bu en saf durumdur. Tam dengeli node:
+```text
+Jedi=50, Sith=50
+```
+
+ise: $$ Gini=1-0.5^2-0.5^2=0.5 $$ olur. Bu iki sınıflı problemde maksimum karışıklıktır. Dolayısıyla node açısından:
+```text
+Gini = 0.0 ───────────────────────────────► Gini = 0.5
+   │                                           │
+   ▼                                           ▼
+Tam saf node                           Maksimum karışık node
+Jedi = 100%, Sith = 0%                 Jedi = 50%, Sith = 50%
+```
+
+Fakat düşük Gini tek başına "model iyi" anlamına gelmez; Gini esas olarak **hangi split'in daha iyi olduğunu seçmek** için kullanılır.
+
+---
+
+# 4. Split seçimi matematiksel olarak nasıl oluyor?
+
+Parent node 100 örnek içersin:
+```text
+50 Jedi 50 Sith
+```
+
+Parent impurity: $$ G_{parent}=1-0.5^2-0.5^2=0.5 $$ Bir split sonrası:
+```text
+Left : 40 örnek → 38 Jedi, 2 Sith
+Right: 60 örnek → 12 Jedi, 48 Sith
+```
+
+Left impurity: $$ G_L=1-(38/40)^2-(2/40)^2=0.095 $$ Right impurity: $$ G_R=1-(12/60)^2-(48/60)^2=0.32 $$ Node boyutları farklı olduğu için ağırlıklı impurity kullanılır: $$ G_{split}=\frac{40}{100}G_L+\frac{60}{100}G_R=0.23 $$
+
+Parent impurity `0.5` olduğuna göre bu split'in impurity azalması:
+
+$$ 0.5-0.23=0.27 $$
+
+Tree aday split'leri karşılaştırıp impurity'yi en fazla azaltan bölmeyi tercih eder. Sebep-sonuç zinciri:
+```text
+feature + threshold
+        │
+        ▼
+   iki child node
+        │
+        ▼
+child Gini değerleri
+        │
+        ▼
+ağırlıklı Gini
+        │
+        ▼
+impurity reduction
+        │
+        ▼
+en iyi split
+```
+
+---
+
+# 5. Subject'in örnek ağacını okuyalım
+
+Subject'in root node'u:
+```text
+X[27] <= 0.489 gini = 0.471 samples = 381 value = [145, 236]
+```
+
+`X[27] <= 0.489`: 27 numaralı feature için threshold kararıdır. `samples = 381`: node'da 381 training sample vardır. `value = [145,236]`: node'daki iki sınıfın sample sayılarıdır. Hangi
+sayının `Jedi`, hangisinin `Sith` olduğunu kesinleştirmek için modelin
+`classes_` sırasına bakmak gerekir; sadece `value` dizisine bakarak sınıf
+sırasını varsaymamak gerekir. Dolayısıyla gösterilen node'un Gini'si yaklaşık olarak: $$ Gini=1-(145/381)^2-(236/381)^2 $$ şeklinde hesaplanır.
+
+---
+
+# 6. Soru 1 --- Decision Tree mi Random Forest mı?
+
+**Asıl soru:** Decision Tree nedir, Random Forest nedir, Random Forest Decision Tree'nin çeşidi midir ve hangisini seçmek daha şık? Decision Tree tek bir karar ağacıdır. Random Forest ise birçok Decision Tree'yi bir ensemble/meta-estimator içinde birleştirir. Bu nedenle Random Forest'ı "Decision Tree'nin daha büyük bir çeşidi" olarak değil:
+```text
+Decision Tree
+     │
+     └──► tek karar ağacı
+
+Random Forest
+     │
+     ├──► Tree 1
+     ├──► Tree 2
+     ├──► Tree 3
+     ├──► ...
+     └──► Tree N
+            │
+            ▼
+       voting / aggregation
+            │
+            ▼
+       final prediction
+```
+
+olarak düşünmek daha doğrudur. Subject'in örnek görseli **Decision Tree** seçmiştir. Savunma ve kavramları göstermek açısından Decision Tree daha şık ve açıklayıcıdır. Ancak performans için Random Forest güçlü bir adaydır. En doğru seçim, **aynı Validation F1 ölçütüyle ikisini deneyip** daha iyi genelleyen modeli seçmektir.
+
+---
+
+# 7. Random Forest neden işe yarayabilir?
+
+Tek Decision Tree training verisine duyarlı olabilir. Veri biraz değiştiğinde root'taki ilk split değişebilir ve bu değişiklik aşağıdaki bütün dalları etkileyebilir. Bu yüksek variance davranışıdır. Random Forest farklı sample'lar ve feature alt kümeleri kullanarak çok sayıda tree üretir. Örneğin:
+```text
+Tree 1 ──► Jedi
+Tree 2 ──► Jedi
+Tree 3 ──► Sith
+Tree 4 ──► Jedi
+Tree 5 ──► Jedi
+             │
+             ▼
+       Majority vote
+             │
+             ▼
+           Jedi
+```
+
+ise majority vote `Jedi` olur. İstatistiksel sezgi: farklı modellerin hataları tamamen aynı değilse ensemble aggregation varyansı azaltabilir. Tam bağımsız ve aynı varyanslı bir ortalama için: $$ Var(\bar X)=\frac{\sigma^2}{B} $$ olur; Random Forest ağaçları tam bağımsız olmadığı için gerçek durum bu kadar basit değildir. Random feature/sample seçiminin amaçlarından biri ağaçlar arasındaki korelasyonu azaltmaktır.
+
+---
+
+# 8. DecisionTreeClassifier kodu
+```python
+from sklearn.tree import DecisionTreeClassifier
+
+model = DecisionTreeClassifier(
+    max_depth=6,
+    min_samples_leaf=2,
+    random_state=42,
+)
+```
+
+Bu kod henüz modeli eğitmez. Bir estimator oluşturur. Öğrenme:
+```python
+model.fit(X_train, y_train)
+```
+
+ile yapılır.
+
+---
+
+# 9. Soru 3 --- `max_depth=6` tam olarak nedir?
+
+**Asıl soru:** `max_depth` ağacın en fazla kaç kere çatallanacağını mı sınlıyor ve 6 nereden geliyor? Daha kesin tanım:
+> `max_depth`, root node'dan herhangi bir leaf node'a kadar olan
+> maksimum depth'i sınırlar. Scikit-learn'de root depth `0` kabul edilir. Örneğin:
+```text
+                         ROOT
+                       depth = 0
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+           NODE                      NODE
+        depth = 1                  depth = 1
+          /    \                      │
+         /      \                     │
+      LEAF      LEAF                 LEAF
+    depth = 2  depth = 2           depth = 2
+```
+
+`max_depth=2`, root'tan leaf'e en fazla 2 edge/split mesafesi demektir. Dolayısıyla `max_depth=6`:
+> "Ağaç toplamda yalnızca 6 split yapabilir" demek değildir. Her root-to-leaf path üzerinde maksimum depth 6'dır. Aynı seviyede birçok node bulunabileceğinden toplam split sayısı 6'dan çok daha büyük olabilir.
+
+### 6 sayısı 30 feature ve 398 sample'dan hesaplanıyor mu? Hayır. Böyle bir doğrudan formül yoktur:
+```text
+30 feature + 398 sample → max_depth=6
+```
+
+çıkarımı yapılamaz. `max_depth` hyperparameter'dır. Örneğin:
+```text
+max_depth    Validation F1
+---------    -------------
+    2            0.84
+    4            0.90
+    6            0.93  ◄ en yüksek
+    8            0.90
+   12            0.86
+```
+
+gibi bir sonuç görürsek `6` mantıklı bir seçim olur. Bu tablo subject'in hazır çıktısı değil, tuning sırasında elde edilebilecek örnek bir sonuçtur. Sebep:
+```text
+çok sığ tree
+     │
+     ▼
+underfitting
+     │
+     ▼
+uygun depth
+     │
+     ▼
+daha iyi generalization
+     │
+     ▼
+çok derin tree
+     │
+     ▼
+overfitting
+```
+
+Buradaki `max_depth=6` yalnızca açıklama amacıyla verilmiş bir örnek değerdir. Subject PDF'sinde `max_depth=6` zorunlu tutulmamıştır; gerçek değer validation performansı ile seçilmelidir.
+
+---
+
+# 10. `min_samples_leaf=2` nedir?
+
+`min_samples_leaf`, bir leaf node'da bulunması gereken minimum sample sayısını
+belirler.
+```python
+min_samples_leaf=2
+```
+
+şunu söyler:
+> Her leaf en az 2 sample içermelidir. Amaç çok küçük bölgeler oluşturup training örneklerini ezberlemeyi zorlaştırmaktır. Örneğin `min_samples_leaf=1` ile tek bir sample için özel bir leaf oluşabilir. `min_samples_leaf=2` böyle bir leaf'i engeller.
+
+### `min_samples_split` ile farkı
+
+`min_samples_split`, bir internal node'un **split edilebilmesi** için gereken minimum sample sayısıdır. `min_samples_leaf`, split sonrası **her child/leaf'te** bulunması gereken minimum sample sayısıdır. Örneğin:
+```text
+              Parent node
+              20 samples
+                  │
+               SPLIT
+              /     \
+             /       \
+        Child A     Child B
+        8 samples   12 samples
+```
+
+`min_samples_leaf=5` için geçerlidir; ama:
+```text
+              Parent node
+              20 samples
+                  │
+               SPLIT
+              /     \
+             /       \
+        Child A     Child B
+        3 samples   17 samples
+
+min_samples_leaf = 5
+
+3 < 5  → bu split geçersiz
+```
+
+geçersizdir.
+
+---
+
+# 11. DecisionTreeClassifier'ın önemli parametreleri
+
+Temel imza güncel sürümlerde şu aileyi içerir:
+```python
+DecisionTreeClassifier(
+    criterion="gini",
+    splitter="best",
+    max_depth=None,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    min_weight_fraction_leaf=0.0,
+    max_features=None,
+    random_state=None,
+    max_leaf_nodes=None,
+    min_impurity_decrease=0.0,
+    class_weight=None,
+    ccp_alpha=0.0,
+)
+```
+
+Sürümüne göre yeni parametreler bulunabilir; kendi ortamında `help(DecisionTreeClassifier)` en kesin referanstır.
+
+### `criterion`
+
+Split kalitesini ölçer. Yaygın seçenekler `gini`, `entropy`, `log_loss`'tur. Gini: $$ Gini=1-\sum_kp_k^2 $$ Entropy: $$ H=-\sum_kp_k\log(p_k) $$
+
+### `splitter` `best`: en iyi split'i ara. `random`: rastgele adaylar arasından seçim yap.
+
+### `max_features`
+
+Bir split aranırken kaç feature'ın aday olacağını sınırlar. `None` bütün feature'ları; `max_features="sqrt"` ise yaklaşık `sqrt(p)` feature değerlendirilir. 30 feature için `sqrt(30) ≈ 5.48`, yani pratikte yaklaşık 5 feature dikkate alınır.
+
+### `max_leaf_nodes`
+
+Toplam leaf sayısını sınırlar.
+
+### `min_impurity_decrease`
+
+Split'in yapılabilmesi için gereken minimum impurity azalmasını belirler.
+
+### `class_weight`
+
+Sınıflara farklı ağırlık verir. `balanced`, sınıf frekanslarını dikkate alır. F1 için sınıf dengesizliği varsa denenebilir ama otomatik olarak şart değildir.
+
+### `ccp_alpha`
+
+Cost-complexity pruning ile ağacı budamaya yarar. Daha büyük değer daha agresif pruning anlamına gelir.
+
+### `random_state`
+
+Rastgele süreçleri tekrarlanabilir hale getirir. `42` özel bir matematiksel sayı değildir.
+
+---
+
+# 12. `fit`, `predict` ve `predict_proba` dönüşleri
+```python
+model.fit(X_train, y_train)
+```
+
+modeli eğitir ve fitted estimator'ı döndürür.
+```python
+pred = model.predict(X_test)
+```
+
+her sample için sınıf tahminlerini döndürür.
+```python
+proba = model.predict_proba(X_test)
+```
+
+her sample için sınıf olasılıklarını döndürür. Örneğin:
+```text
+                Jedi      Sith
+Sample 1        0.90      0.10
+Sample 2        0.20      0.80
+```
+
+gibi.
+
+---
+
+# 13. Soru 4 --- Training ve Validation dosyaları nerede kullanılıyor?
+
+**Asıl soru:** DS3'te oluşturduğumuz `Training_knight.csv` ve `Validation_knight.csv` neden ve hangi aşamada kullanılıyor? DS3'te:
+```text
+Train_knight.csv
+       │
+       ▼
+   split / ayır
+    /       \
+   ▼         ▼
+Training  Validation
+```
+
+şeklinde yaptığımız split'in amacı modelin öğrenme verisini, model seçimi için kullanılacak veriden ayırmaktır.
+
+### Training
+```python
+model.fit(X_training, y_training)
+```
+
+burada model feature, threshold, split ve leaf kararlarını öğrenir.
+
+### Validation Model validation etiketlerini eğitim sırasında görmez. Sonra:
+```python
+pred = model.predict(X_validation) f1_score(y_validation, pred)
+```
+
+yapılır. Böylece modelin daha önce görmediği labeled örneklerde nasıl genelleme yaptığını yaklaşık olarak ölçeriz.
+
+---
+
+# 14. Neden Training F1 tek başına yeterli değil?
+
+Diyelim:
+```text
+Training F1 = 0.99
+```
+
+Bu modelin çok iyi genelleyeceği anlamına gelmez. Ağaç training verisini ezberlemiş olabilir. Örneğin:
+```text
+Training F1    Validation F1 0.99           0.82
+```
+
+sonucu overfitting şüphesi doğurur. Ama:
+```text
+Training F1    Validation F1 0.94           0.92
+```
+
+daha sağlıklı bir genelleme davranışı gösterebilir.
+
+---
+
+# 15. Hyperparameter tuning neden Validation üzerinde yapılıyor?
+
+`max_depth` model tarafından training'den öğrenilen bir parametre değildir; sen belirlersin. Buna hyperparameter denir. Adaylar:
+```text
+Aday max_depth değerleri:
+
+2 → 3 → 4 → 5 → 6 → 8 → 10 → 12
+```
+
+olsun. Her biri için:
+```text
+Training
+   │
+   ▼
+ fit()
+   │
+   ▼
+Validation
+   │
+   ▼
+predict()
+   │
+   ▼
+ F1-score
+```
+
+yaparsın. Örneğin:
+```text
+depth=3 → 0.86 depth=4 → 0.89 depth=5 → 0.92 depth=6 → 0.93 depth=8 → 0.88
+```
+
+ise `6` adaylar arasında daha iyi görünür. Bu süreç **model selection / hyperparameter tuning**'dir.
+
+---
+
+# 16. Finalde neden Training + Validation ile tekrar fit ediyoruz?
+
+Hyperparameter seçimi bittikten sonra Validation artık model seçimi için gerekmiyorsa, iki labeled seti birleştirip daha fazla veriyle final model eğitmek mantıklıdır:
+```text
+Training + Validation
+        │
+        ▼
+   final model.fit()
+        │
+        ▼
+   Test_knight.csv
+        │
+        ▼
+    prediction
+```
+
+Sebep: final modelin öğrenebileceği labeled sample sayısını artırıyoruz. Bu noktadan sonra Validation artık bağımsız bir değerlendirme seti değildir. Bu normaldir; Validation'ın görevi model seçimine yardımcı olmaktır. `Test_knight.csv` target içermiyorsa sen kendi programında gerçek Test F1'ini hesaplayamazsın. Evaluator gerçek etiketlerle karşılaştırabilir.
+
+---
+
+# 17. Validation ile Test'i karıştırma
+```text
+Training
+   │
+   ▼
+model öğrenir
+   │
+   ▼
+Validation
+   │
+   ▼
+model / hyperparameter seçilir
+   │
+   ▼
+Test
+   │
+   ▼
+final prediction
+```
+
+Validation'a binlerce kez bakıp en iyi sonucu seçmek de bir tür validation'a uyum sağlama riski oluşturur. Daha sağlam istatistiksel yöntemlerden biri cross-validation'dır; fakat Piscine'in DS3 split'i bu exercise için doğrudan kullanılabilecek pratik bir yöntemdir.
+
+---
+
+# 18. Soru 5 --- RandomForestClassifier ne yapıyor?
+
+**Asıl soru:** `RandomForestClassifier(...)` ne yapıyor, parametreleri ve dönüşleri nedir?
+```python
+from sklearn.ensemble import RandomForestClassifier  model = RandomForestClassifier( n_estimators=300, max_depth=8, random_state=42, n_jobs=-1 )
+```
+
+Bu kod henüz eğitim yapmaz. 300 adet Decision Tree içeren bir forest için estimator oluşturur. Eğitim:
+```python
+model.fit(X_train, y_train)
+```
+
+ile yapılır.
+
+---
+
+# 19. RandomForestClassifier parametreleri
+
+Güncel scikit-learn'deki temel parametre ailesi:
+```python
+RandomForestClassifier(
+    n_estimators=100,
+    criterion="gini",
+    max_depth=None,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    min_weight_fraction_leaf=0.0,
+    max_features="sqrt",
+    max_leaf_nodes=None,
+    min_impurity_decrease=0.0,
+    bootstrap=True,
+    oob_score=False,
+    n_jobs=None,
+    random_state=None,
+    verbose=0,
+    warm_start=False,
+    class_weight=None,
+    ccp_alpha=0.0,
+    max_samples=None,
+)
+```
+
+Sürümüne göre ek parametreler bulunabilir.
+
+### `n_estimators`
+
+Forest'taki tree sayısıdır. `300` → 300 tree. Artması prediction'ı daha stabil yapabilir ama hesaplama maliyetini artırır.
+
+### `criterion`
+
+Her tree'nin split kalitesini belirler: `gini`, `entropy`, `log_loss`.
+
+### `max_depth` Forest'taki **her tree** için maksimum depth.
+
+### `min_samples_split` Bir node'un split edilebilmesi için minimum sample sayısı.
+
+### `min_samples_leaf` Her leaf'te bulunması gereken minimum sample sayısı.
+
+### `min_weight_fraction_leaf`
+
+Sample weight kullanılıyorsa leaf'in toplam ağırlığın minimum oranını belirler.
+
+### `max_features`
+
+Her split'te değerlendirilecek feature sayısını belirler. Random Forest'ın ağaçları birbirinden farklılaştırmasında önemli rol oynar. Classification için `sqrt` yaygın bir seçenektir.
+
+### `max_leaf_nodes`
+
+Her tree'nin maksimum leaf sayısı.
+
+### `min_impurity_decrease`
+
+Bir split'in yapılabilmesi için gereken minimum impurity azalması.
+
+### `bootstrap`
+
+`True` ise tree'ler bootstrap örneklemesi kullanır; sample'lar replacement ile seçilerek farklı eğitim örneklemleri oluşturulur.
+
+### `oob_score`
+
+Bootstrap sırasında belirli bir tree'ye seçilmeyen out-of-bag sample'ları ek bir performans tahmini için kullanmaya yarar.
+
+### `n_jobs`
+
+Paralel CPU kullanımı. `-1` mümkün olan tüm çekirdekleri kullanır. Esas olarak hesaplama süresini etkiler.
+
+### `random_state`
+
+Rastgele örnekleme ve feature seçimlerinin tekrarlanabilirliği.
+
+### `verbose`
+
+Eğitim sırasında terminale yazdırılan ilerleme miktarı.
+
+### `warm_start`
+
+Mevcut forest'ı koruyarak daha sonra yeni tree'ler eklemeye izin verir.
+
+### `class_weight`
+
+Sınıflara farklı ağırlıklar verir. `balanced` sınıf frekanslarını dikkate alır.
+
+### `ccp_alpha`
+
+Cost-complexity pruning ile tree karmaşıklığını azaltır.
+
+### `max_samples`
+
+`bootstrap=True` iken her tree'nin bootstrap eğitim örnekleminde kullanılacak sample miktarını belirleyebilir; oran veya sayı şeklinde verilebilir.
+
+---
+
+# 20. Random Forest nasıl prediction üretiyor? Örneğin 5 tree:
+```text
+Tree 1 → Jedi
+Tree 2 → Sith
+Tree 3 → Jedi
+Tree 4 → Jedi
+Tree 5 → Sith
+```
+
+oylaması:
+```text
+Jedi = 3 Sith = 2
+```
+
+olduğu için final prediction `Jedi` olur. Matematiksel sezgi: $$ \hat y=mode\{T_1(x),T_2(x),...,T_B(x)\} $$ Burada `B` tree sayısıdır. `predict_proba(X)` ise tree'lerin kolektif sınıf olasılığı tahminlerini verir.
+
+---
+
+# 21. RandomForestClassifier'ın dönüş değerleri
+```python
+model = RandomForestClassifier(...)
+```
+
+henüz fit edilmemiş estimator döndürür.
+```python
+model.fit(X_train, y_train)
+```
+
+fitted estimator'ı döndürür.
+```python
+pred = model.predict(X_test)
+```
+
+sample başına sınıf tahmini döndürür.
+```python
+proba = model.predict_proba(X_test)
+```
+
+sample başına sınıf olasılıklarını döndürür.
+
+---
+
+# 22. Soru 6 --- %90 F1-score nasıl garanti edilir?
+
+**Asıl soru:** Sonuç olarak %90 F1-score'u nasıl garanti edeceğiz? En önemli cevap:
+> **Matematiksel olarak garanti edemezsin.** Subject bir performans hedefi koyuyor: $$ F1\ge0.90 $$ ama belirli bir `max_depth`, `n_estimators` veya model ailesinin bu değeri kesinlikle vereceğini söyleyen bir formül yoktur.
+
+---
+
+# 23. F1'i hatırlayalım
+
+Precision: $$ P=\frac{TP}{TP+FP} $$ Recall: $$ R=\frac{TP}{TP+FN} $$ F1: $$ F1=\frac{2PR}{P+R} $$ ve eşdeğer olarak: $$ F1=\frac{2TP}{2TP+FP+FN} $$ F1 precision ve recall'u birlikte dikkate alır. Önceki Ex00'daki confusion matrix bu nedenle burada doğrudan kullanılır.
+
+---
+
+# 24. %90'a ulaşmak için gerçek sebep-sonuç süreci
+```text
+Training / Validation
+        │
+        ▼
+Baseline Decision Tree
+        │
+        ▼
+Validation F1
+        │
+        ▼
+Hyperparameter tuning
+        │
+        ├── max_depth
+        ├── min_samples_leaf
+        └── min_samples_split
+        │
+        ▼
+Validation F1 karşılaştır
+        │
+        ▼
+Gerekirse Random Forest dene
+        │
+        ├── n_estimators
+        ├── max_depth
+        └── max_features
+        │
+        ▼
+En iyi yapı
+        │
+        ▼
+Final fit
+        │
+        ▼
+Test prediction
+```
+
+Örneğin:
+```text
+Decision Tree  max_depth=4 → F1=0.89 max_depth=5 → F1=0.91 max_depth=6 → F1=0.93 max_depth=8 → F1=0.90
+```
+
+sonra:
+```text
+max_depth=6, min_samples_leaf=1 → 0.92 max_depth=6, min_samples_leaf=2 → 0.93 max_depth=6, min_samples_leaf=4 → 0.91
+```
+
+Böyle bir sonuç bulursan `6` gibi bir değerin neden seçildiğini görürsün: **veri boyutundan çıkarıldığı için değil, validation performansı ve model karmaşıklığı dengesi açısından iyi sonuç verdiği için.**
+
+---
+
+# 25. Ex02 ile Ex04 bağlantısı
+
+Ex02'de feature uzayının varyans yapısını inceliyorduk. PCA uygulanırsa merkezlenmiş veri üzerinden: $$ PC_i=X_cw_i $$ şeklinde yeni eksenler oluşturulur. Bu, boyut azaltma ve bilgi yoğunluğunu inceleme aracıdır. Ex04 ise:
+```text
+feature uzayı ↓ sınıfları ayıran karar bölgeleri ↓ classification
+```
+
+problemini çözer. PCA bu nedenle Ex04 için zorunlu değildir. Tree modelleri genellikle scaling de istemez.
+
+---
+
+# 26. Ex03 ile Ex04 bağlantısı
+
+Ex03'te VIF: $$ VIF_j=\frac{1}{1-R_j^2} $$ ile feature `X_j`'nin diğer feature'lar tarafından ne kadar açıklanabildiğini ölçüyorduk. Örneğin: $$ X_3\approx X_1+X_2 $$ ise redundant information vardır. Ex04'te ise artık:
+> Bu feature'larla Jedi/Sith kararını nasıl verebiliriz? sorusuna geçiyoruz. Pipeline:
+```text
+Ex02 → varyans / PCA / boyut yapısı Ex03 → multicollinearity / VIF / feature selection Ex04 → classification model
+```
+
+---
+
+# 27. VIF'i mutlaka uygulamak gerekiyor mu? Hayır. Linear regression'da multicollinearity: $$ \hat\beta=(X^TX)^{-1}X^Ty $$ ifadesindeki `X^T X` yapısını ill-conditioned hale getirerek coefficient variance'larını büyütebilir. Decision Tree ise bu inverse matrix hesabını yapmaz. Bu nedenle:
+> "VIF \< 5 yapmadan Decision Tree çalışmaz." yanlıştır. VIF ile feature azaltmak redundant feature'ları azaltabilir; fakat bunun F1'i artıracağı garanti değildir. Feature selection'ın etkisi yine Validation F1 ile ölçülmelidir. Ayrıca Ex03'te seçtiğin feature setini Validation ve Test'e de **aynı şekilde** uygulamalısın; aksi halde train/test feature uzayları uyuşmaz.
+
+---
+
+# 28. PCA'yı Ex04'te kullanmalı mıyız? Hayır, zorunlu değildir. PCA original feature'ları:
+```text
+PC1, PC2, PC3, ...
+```
+
+şeklinde yeni lineer kombinasyonlara dönüştürür. Decision Tree ise original feature'lar üzerinde doğrudan nonlinear split yapabilir. Örneğin:
+```text
+X[27] <= 0.489
+```
+
+yorumlanabilir bir original-feature kararıdır. PCA sonrası:
+```text
+PC3 <= 0.42
+```
+
+gibi bir karar görebilirsin; `PC3` birçok original feature'ın lineer kombinasyonudur. Bu nedenle Ex02'de PCA öğrenmek önemli olsa da Ex04'te otomatik olarak PCA uygulamak gerekmez.
+
+---
+
+# 29. Tree modellerinde scaling neden genellikle gerekli değil? Bir feature'ın monoton bir dönüşümü sıralamayı koruyorsa threshold da buna göre değişebilir. Örneğin original:
+```text
+X <= 0.5
+```
+
+ile ayrılıyorsa ölçekleme sonrası başka bir threshold ile aynı sample sıralaması korunabilir. Bu nedenle Decision Tree ve Random Forest için StandardScaler/MinMaxScaler
+genellikle zorunlu preprocessing değildir. Bu, scaling'in hiçbir zaman
+kullanılamayacağı anlamına gelmez; sadece tree tabanlı modellerde performans
+için zorunlu bir önkoşul olmadığı anlamına gelir.
+
+---
+
+# 30. 398 × 30 veri setinin lineer cebirsel resmi
+
+Senin datasetini predictor matrisi olarak: $$ X\in\mathbb{R}^{398\times30} $$ ve target'ı: $$ y\in\{Jedi,Sith\}^{398} $$ gibi düşünebiliriz. `knight` target olduğu için classification feature matrix'e dahil edilmez. Ex02:
+```text
+X → variance/covariance → PCA (gerekirse)
+```
+
+Ex03:
+```text
+X → feature redundancy → VIF → gerekirse feature selection
+```
+
+Ex04:
+```text
+X → recursive threshold splits → leaves → y prediction
+```
+
+Decision Tree'nin temel geometrik işlemi: $$ x_j\le t $$ veya: $$ x_j>t $$ koşullarıyla feature uzayını bölmektir.
+
+---
+
+# 31. Ex04 için önerilen çalışma sırası
+
+### Aşama 1 --- Baseline Decision Tree
+```python
+DecisionTreeClassifier(random_state=42)
+```
+
+ile başla.
+
+### Aşama 2 --- Training/Validation
+```text
+Training
+   │
+   ▼
+ fit()
+   │
+   ▼
+Validation
+   │
+   ▼
+predict()
+   │
+   ▼
+ F1-score
+```
+
+### Aşama 3 --- Tree complexity Önce `max_depth`, `min_samples_leaf`, `min_samples_split` gibi parametreleri karşılaştır.
+
+### Aşama 4 --- Random Forest
+```python
+RandomForestClassifier( n_estimators=300, random_state=42, n_jobs=-1 )
+```
+
+gibi bir baseline dene.
+
+### Aşama 5 --- Karşılaştır
+```text
+Decision Tree validation F1 vs Random Forest validation F1
+```
+
+### Aşama 6 --- Final En iyi yapıyı seç; sonra labeled Training + Validation ile final fit yap ve Test üzerinde prediction üret.
+
+---
+
+# 32. En önemli kavram: model ≠ hyperparameter
+
+Şu kodda:
+```python
+model = DecisionTreeClassifier(max_depth=6)
+```
+
+`DecisionTreeClassifier` model ailesidir; `max_depth=6` hyperparameter seçimidir. Benzer şekilde:
+```python
+RandomForestClassifier( n_estimators=300, max_depth=8 )
+```
+
+Random Forest model ailesidir; `n_estimators` ve `max_depth` hyperparameter'lardır. Validation'ın temel görevi:
+> Hangi model + hangi hyperparameter kombinasyonunun daha iyi
+> genelleştiğini bulmak.
+
+---
+
+# 33. Sonuç: Ex04'ün gerçek amacı
+
+Ex04 yalnızca `DecisionTreeClassifier` çağırma alıştırması değildir. Asıl sebep-sonuç zinciri:
+```text
+Feature matrix X
+       │
+       ▼
+feature + threshold adayları
+       │
+       ▼
+Gini impurity hesapla
+       │
+       ▼
+en iyi split'i seç
+       │
+       ▼
+recursive partition
+       │
+       ▼
+leaf
+       │
+       ▼
+Jedi / Sith prediction
+```
+
+Tek tree'nin variance/overfitting riski varsa:
+```text
+Tek Decision Tree
+       │
+       ▼
+çok sayıda farklı Decision Tree
+       │
+       ▼
+Random Forest
+       │
+       ▼
+voting / aggregation
+       │
+       ▼
+daha stabil prediction
+```
+
+ve bunun üstünde model selection:
+```text
+Training
+   │
+   ▼
+ fit()
+   │
+   ▼
+Validation
+   │
+   ▼
+ F1-score
+   │
+   ▼
+hyperparameter değiştir
+   │
+   └──────────► tekrar dene
+```
+
+sonra final:
+```text
+seçilen model
+      │
+      ▼
+Training + Validation
+      │
+      ▼
+final fit
+      │
+      ▼
+Test
+      │
+      ▼
+Tree.txt
+```
+
+---
+
+# 34. Altı sorunun kısa ama kesin cevabı
+
+## Soru 1 --- Decision Tree / Random Forest
+
+Decision Tree tek ağaçtır. Random Forest birçok Decision Tree'nin
+ensemble'ıdır. Subject'in örneği **Decision Tree** gösterir. Öğrenme ve
+savunma açısından Decision Tree daha açıklayıcı olabilir; performans için
+Random Forest güçlü bir adaydır. Gerçek seçim Validation F1 ile yapılmalıdır.
+
+## Soru 2 --- Gini $$ Gini=1-\sum_kp_k^2 $$ İki sınıfta: $$ Gini=1-p_1^2-p_2^2 $$
+
+`1-p1-p2` kullanılmaz; çünkü `p1+p2=1` olduğundan her zaman 0'dır. İki
+sınıfta `Gini=0` saf, `Gini=0.5` maksimum karışık node'dur.
+
+## Soru 3 --- max_depth
+
+`max_depth=6`, root-to-leaf maksimum depth'in 6 olmasıdır; toplam split
+sayısının 6 olması değildir. 30 feature ve 398 sample'dan doğrudan
+hesaplanmaz. Validation/CV ile seçilir. `min_samples_leaf=2`, her
+leaf'te en az 2 sample olmasını ister.
+
+## Soru 4 --- Training / Validation
+
+``` text
+Training → model öğrenir
+Validation → model/hyperparameter seçilir
+Test → final prediction
+```
+
+Validation'ın sebebi, modelin görmediği labeled örneklerde genelleme
+performansını ölçerek model seçimi yapabilmektir.
+
+## Soru 5 --- RandomForestClassifier
+
+`n_estimators=300` 300 tree; `max_depth=8` her tree için maksimum depth
+8; `random_state=42` tekrarlanabilirlik; `n_jobs=-1` paralel CPU
+kullanımı demektir. Diğer önemli ayarlar `criterion`,
+`min_samples_split`, `min_samples_leaf`, `max_features`, `bootstrap`,
+`oob_score`, `class_weight`, `ccp_alpha`, `max_samples`, `warm_start`
+vb.dir. `fit()` fitted estimator döndürür; `predict()` sınıf tahminleri,
+`predict_proba()` olasılıkları verir.
+
+## Soru 6 --- %90 F1
+
+%90 F1 matematiksel olarak garanti edilemez. Ama Training/Validation
+ayrımı, hyperparameter tuning, Decision Tree/Random Forest
+karşılaştırması ve final fit süreciyle bu hedefe ulaşma olasılığı
+artırılır.
+
+Ex02 ve Ex03 ile bağlantı vardır:
+
+``` text
+Ex02 → varyans / PCA / boyut yapısı
+Ex03 → multicollinearity / VIF / feature selection
+Ex04 → classification
+```
+
+Fakat PCA veya VIF \< 5 yapmak tek başına %90 F1 garantisi vermez. Son
+karar ölçütü validation üzerindeki gerçek F1 performansıdır.
+# 35. Ek sorular — görselleştirme, split mantığı ve tam Ex04 kodu
+
+Bu bölüm, yukarıdaki konuları özellikle uygulama sırasında oluşabilecek
+karışıklıkları giderecek şekilde bir araya getirir.
+
+## 35.1 Metinsel ağaç şeması ne anlatıyor?
+
+Önceki sürümdeki şu gösterim:
+
+```text
+                         ROOT
+                       depth = 0
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+           NODE                      NODE
+        depth = 1                  depth = 1
+          /    \                      │
+         /      \                     │
+      LEAF      LEAF                 LEAF
+    depth = 2  depth = 2           depth = 2
+```
+
+tek satıra sıkıştığı için gerçekten kötü görünüyordu. Burada anlatılmak
+istenen şey aslında şudur:
+
+```text
+                         ROOT
+                       depth = 0
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+           NODE                      NODE
+        depth = 1                  depth = 1
+          /    \                      │
+         /      \                     │
+      LEAF      LEAF                 LEAF
+    depth = 2  depth = 2           depth = 2
+```
+
+Yani:
+
+- **Root**: Ağacın başlangıç node'udur.
+- **Node**: İçinde bir karar/split bulunan ara noktadır.
+- **Child node**: Bir node'un split işleminden sonra oluşan alt node'larından
+  her biridir.
+- **Leaf**: Artık başka split yapılmayan, tahminin üretildiği son node'dur.
+- **Depth**: Root'tan o node'a gelmek için geçilen bağlantı (edge) sayısıdır.
+
+Örneğin yukarıdaki ağaçta root'un depth'i `0`, root'un çocuklarının depth'i
+`1`, onların çocuklarının depth'i `2`dir.
+
+> **Önemli:** Bir node'un iki child'ı olmak zorunda olduğu düşünülmemelidir.
+> Scikit-learn'deki binary Decision Tree'de normal bir split iki child
+> oluşturur; fakat bir node split edilmeyip leaf olarak bırakılabilir.
+
+---
+
+## 35.2 Node, child, leaf ve split nedir?
+
+Decision Tree'nin temel parçalarını birbirinden ayırmak çok önemlidir.
+
+### Node
+
+**Node**, ağacın içindeki bir karar noktasıdır.
+
+Örneğin:
+
+```text
+X[27] <= 0.489 ?
+```
+
+ifadesi bir split kararıdır ve bunu taşıyan nokta bir node'dur.
+
+Bir node'un içinde genellikle şu bilgiler bulunabilir:
+
+```text
+feature + threshold
+Gini impurity
+sample sayısı
+sınıf dağılımı
+```
+
+Subject'in örnek çıktısında bunu şöyle görürüz:
+
+```text
+X[27] <= 0.489
+Gini = 0.471
+samples = 381
+value = [145, 236]
+```
+
+### Child node
+
+Bir node split edildiğinde iki yeni node oluşur. Bunlara **child node**
+denir.
+
+Örneğin:
+
+```text
+                    X[27] <= 0.489
+                    /             \
+                  EVET           HAYIR
+                  /                 \
+              Child 1             Child 2
+```
+
+Child 1 ve Child 2, root node'un çocuklarıdır.
+
+### Split
+
+**Split**, mevcut node'daki veriyi iki gruba ayıran koşuldur.
+
+Örneğin:
+
+```text
+X[27] <= 0.489
+```
+
+şu iki grubu oluşturur:
+
+```text
+                  X[27] <= 0.489
+                  /             \
+              True              False
+               /                  \
+       X[27] <= 0.489       X[27] > 0.489
+```
+
+Burada `0.489` **threshold**, `X[27]` ise seçilen **feature**'dır.
+
+### Leaf
+
+**Leaf**, artık split edilmeyen son node'dur.
+
+Örneğin:
+
+```text
+                    X[27] <= 0.489
+                    /             \
+                  /                 \
+             Leaf A               Leaf B
+             Jedi                  Sith
+```
+
+Model yeni bir örnek geldiğinde ağacın kurallarını takip eder ve bir leaf'e
+ulaşır. Leaf'in sınıf dağılımına göre son sınıf tahmini yapılır.
+
+---
+
+## 35.3 `max_depth` görsel olarak ne anlatıyor?
+
+Scikit-learn'de root'un depth'i `0` kabul edilir.
+
+### `max_depth=0`
+
+```text
+                 ROOT
+               depth 0
+                  │
+                LEAF
+```
+
+Ağaç hiç split yapamaz.
+
+### `max_depth=1`
+
+```text
+                 ROOT
+               depth 0
+              /        \
+             /          \
+        LEAF              LEAF
+      depth 1           depth 1
+```
+
+Root bir kez split edilir.
+
+### `max_depth=2`
+
+```text
+                       ROOT
+                     depth 0
+                    /       \
+                   /         \
+             NODE               NODE
+           depth 1            depth 1
+           /    \              /    \
+          /      \            /      \
+       LEAF     LEAF       LEAF     LEAF
+      depth 2  depth 2    depth 2  depth 2
+```
+
+Burada bazı node'lar daha erken leaf olabilir. Örneğin:
+
+```text
+                       ROOT
+                     depth 0
+                    /       \
+                   /         \
+             LEAF              NODE
+           depth 1            depth 1
+                              /    \
+                             /      \
+                          LEAF      LEAF
+                         depth 2   depth 2
+```
+
+Dolayısıyla `max_depth=2`, **ağacın her dalının tam olarak 2 seviyeye kadar
+büyüyeceği** anlamına gelmez. Sadece hiçbir root-to-leaf yolunun depth 2'yi
+geçemeyeceği anlamına gelir.
+
+### Çok önemli ayrım
+
+```text
+max_depth = 2
+```
+
+şu anlama **gelmez**:
+
+```text
+Toplam sadece 2 split yapılacak.
+```
+
+Şu anlama gelir:
+
+```text
+Her root → leaf yolu en fazla 2 depth olabilir.
+```
+
+Örneğin tam dengeli binary bir ağaçta `max_depth=2` için teorik olarak:
+
+```text
+              ROOT                 1 node
+             /    \
+           N1      N2              2 node
+          /  \    /  \
+         L1  L2  L3  L4            4 leaf
+
+Toplam node = 7
+Toplam split yapan internal node = 3
+```
+
+olabilir. Gerçek ağaç bunun çok daha küçük bir kısmı da olabilir; çünkü
+scikit-learn her dalı zorla aynı derinliğe kadar büyütmez.
+
+---
+
+## 35.4 `DecisionTreeClassifier(...)` neden tek satır olmamalı?
+
+Örneğin:
+
+```python
+DecisionTreeClassifier(
+    criterion="gini",
+    splitter="best",
+    max_depth=None,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    min_weight_fraction_leaf=0.0,
+    max_features=None,
+    random_state=None,
+    max_leaf_nodes=None,
+    min_impurity_decrease=0.0,
+    class_weight=None,
+    ccp_alpha=0.0,
+)
+```
+
+şeklinde yazmak çok daha okunabilirdir.
+
+Bu satırların tamamının her projede elle verilmesi gerekmez. Örneğin sadece:
+
+```python
+model = DecisionTreeClassifier(
+    max_depth=6,
+    min_samples_leaf=2,
+    random_state=42,
+)
+```
+
+yazarsak diğer parametreler varsayılan değerlerini kullanır.
+
+Benzer şekilde Random Forest:
+
+```python
+model = RandomForestClassifier(
+    n_estimators=300,
+    max_depth=8,
+    random_state=42,
+    n_jobs=-1,
+)
+```
+
+şeklinde okunabilir biçimde yazılmalıdır.
+
+---
+
+## 35.5 `X[27] <= 0.489` neden seçilmiş?
+
+Bu soru Ex04'ün en önemli noktalarından biridir.
+
+Subject'in örneğinde root:
+
+```text
+X[27] <= 0.489
+```
+
+olarak gösteriliyor. Buradan şu sonucu çıkarmamalıyız:
+
+> "27. feature özel olarak seçilmiş ve threshold 0.489 insan tarafından
+> belirlenmiş."
+
+Normal bir `DecisionTreeClassifier(criterion="gini")` eğitiminde bunu model
+veriden arar.
+
+Kabaca yaptığı işlem:
+
+```text
+Tüm feature'lar
+      │
+      ├── Feature 0 → olası threshold'lar
+      ├── Feature 1 → olası threshold'lar
+      ├── Feature 2 → olası threshold'lar
+      ├── ...
+      └── Feature 27 → olası threshold'lar
+                         │
+                         ├── 0.10
+                         ├── 0.20
+                         ├── 0.30
+                         ├── 0.489
+                         └── ...
+                              ↓
+                      Gini azalmasını hesapla
+                              ↓
+                      diğer adaylarla karşılaştır
+                              ↓
+                       en iyi split'i seç
+```
+
+### Sayısal olarak nasıl düşünmeliyiz?
+
+Diyelim root node'da 381 örnek var ve sınıflar:
+
+```text
+Jedi = 145
+Sith = 236
+```
+
+Parent Gini yaklaşık olarak:
+
+$$
+G_{parent}
+=1-\left(\frac{145}{381}\right)^2
+ -\left(\frac{236}{381}\right)^2
+\approx 0.471
+$$
+
+Bu, subject'in örnek çıktısındaki `gini = 0.471` değeriyle uyuşur.
+
+Şimdi tamamen **açıklama amacıyla** iki aday threshold düşünelim. Gerçek
+datasetin ilgili satırlarını görmeden bu sayıların gerçek root sonuçları
+olduğunu iddia etmiyoruz.
+
+### Aday A
+
+```text
+X[27] <= 0.489
+
+Left  : 132 sample
+        Jedi = 125
+        Sith = 7
+
+Right : 249 sample
+        Jedi = 20
+        Sith = 229
+```
+
+Left Gini:
+
+$$
+G_L=1-\left(\frac{125}{132}\right)^2
+      -\left(\frac{7}{132}\right)^2
+\approx 0.100
+$$
+
+Right Gini:
+
+$$
+G_R=1-\left(\frac{20}{249}\right)^2
+      -\left(\frac{229}{249}\right)^2
+\approx 0.148
+$$
+
+Ağırlıklı child impurity:
+
+$$
+G_{split}
+=\frac{132}{381}(0.100)
+ +\frac{249}{381}(0.148)
+\approx 0.131
+$$
+
+Dolayısıyla yaklaşık impurity reduction:
+
+$$
+0.471-0.131=0.340
+$$
+
+olur.
+
+Bu çok büyük bir saflık artışıdır. Subject'in sonraki düğümlerindeki
+`132` ve `249` sample değerleri de gerçekten bu root split'in iki tarafına
+karşılık gelmektedir; subject örneğinde root'un ardından `samples = 249` ve
+`samples = 132` görülmektedir.
+
+### Peki neden özellikle 0.489?
+
+Çünkü tree algoritması threshold'ları kendi eğitim sürecinde değerlendirir.
+Conceptually:
+
+```text
+Feature 27 değerleri sıralanır
+
+0.10   0.12   0.15   0.21   ...   0.488   0.490   0.52   ...
+                              ↑
+                         aday sınır
+
+             ↓
+
+        iki gruba ayır
+             ↓
+        Gini hesapla
+             ↓
+      impurity reduction
+             ↓
+      diğer threshold'larla karşılaştır
+```
+
+Scikit-learn'in gerçek uygulaması aday split noktalarını optimize edilmiş
+şekilde değerlendirir; pratikte threshold'u insanın `0.489` diye elle yazması
+gibi düşünmemeliyiz.
+
+### Peki neden `X[27]`?
+
+Çünkü root'ta değerlendirilen adaylar arasında, impurity'yi en fazla azaltan
+split `feature 27` üzerindeki bu threshold olmuştur.
+
+Dolayısıyla:
+
+```text
+X[27]     → hangi feature?
+0.489     → hangi threshold?
+Gini      → bu split ne kadar iyi?
+```
+
+sorularının cevabı modelin eğitim verisinden gelir.
+
+> **Önemli:** Subject'in yalnızca çıktı ağacını okuyarak "feature 27 bütün
+> dataset içinde en önemli feature'dır" sonucunu doğrudan çıkarmak doğru
+> değildir. Bu sadece ağacın **root split'inde** seçilmiş feature'dır.
+
+---
+
+## 35.6 `max_depth=6` gibi bir değeri nerede göreceğiz?
+
+Önceki örnekte:
+
+```text
+depth=2 → F1=0.84
+depth=4 → F1=0.90
+depth=6 → F1=0.93
+depth=8 → F1=0.90
+depth=12 → F1=0.86
+```
+
+gibi bir tablo verilmişti.
+
+Bu tablo **subject'in verdiği hazır bir çıktı değildir**. Bu, bizim
+hyperparameter tuning yaparken oluşturabileceğimiz örnek bir sonuçtur.
+
+Gerçek projede bunu kod yazdırabilir.
+
+Örneğin:
+
+```python
+for depth in [2, 4, 6, 8, 12]:
+    model = DecisionTreeClassifier(
+        max_depth=depth,
+        random_state=42,
+    )
+
+    model.fit(X_train, y_train)
+    pred = model.predict(X_validation)
+    score = f1_score(y_validation, pred, pos_label="Jedi")
+
+    print(depth, score)
+```
+
+Terminalde örneğin:
+
+```text
+max_depth=2  -> F1=0.84
+max_depth=4  -> F1=0.90
+max_depth=6  -> F1=0.93
+max_depth=8  -> F1=0.90
+max_depth=12 -> F1=0.86
+```
+
+görebiliriz.
+
+Sonra:
+
+```text
+en yüksek Validation F1
+          ↓
+      depth = 6
+          ↓
+final model için max_depth=6
+```
+
+seçilebilir.
+
+Yani `6` sayısını önceden bilip koda yazmıyoruz. **Deney sonucunda seçiyoruz.**
+
+---
+
+## 35.7 Peki subject'in `max_depth=6` kullandığını nereden biliyoruz?
+
+Burada önceki açıklamadaki önemli bir ifadeyi düzeltmek gerekiyor.
+
+Subject PDF'sinin Ex04 açıklamasında:
+
+```text
+Make a Decision Tree Classifier or Random Forest Classifier model
+Display the tree in a graph
+...
+Your model must have minimum 90% of f1-score
+```
+
+deniyor. Subject'in örnek ağacı ise root'tan başlayan bir Decision Tree
+çıktısı gösteriyor. Fakat subject metninde **`max_depth=6` diye bir zorunlu
+parametre verilmemiştir.**
+
+Dolayısıyla:
+
+> "Subject `max_depth=6` kullanıyor."
+
+denmesi doğru değildir.
+
+`max_depth=6` bizim önceki açıklamada verdiğimiz **örnek bir hyperparameter
+seçimiydi**.
+
+Subject'in verdiği örnek ağaçtan `max_depth=6` değerini çıkarmak da mümkün
+değildir. Ağacın kaç depth'e kadar devam ettiğini örnek çıktıya bakarak
+inceleyebiliriz; fakat bundan "kullanılan hyperparameter kesinlikle 6 idi"
+sonucunu çıkaramayız.
+
+Bu ayrım önemli:
+
+```text
+Subject'in istediği:
+Decision Tree veya Random Forest
+        ↓
+F1 >= 0.90
+
+Bizim seçimimiz:
+max_depth = ?
+min_samples_leaf = ?
+criterion = ?
+...
+        ↓
+Validation sonucu ile belirlenir
+```
+
+---
+
+## 35.8 Ex04 için tam çalışan temel Decision Tree kodu
+
+Aşağıdaki kod, Ex04'ün bütün temel akışını tek yerde görmeyi amaçlıyor.
+
+Bu sürüm özellikle **öğrenme amacıyla** Decision Tree kullanıyor. Önce
+training verisinin bir bölümünü validation olarak ayırıyor, farklı
+`max_depth` değerlerini deniyor, en iyi validation F1 değerini seçiyor, sonra
+seçilen modeli tüm training verisiyle tekrar eğitiyor ve Test üzerinde
+prediction yaparak `Tree.txt` oluşturuyor.
+
+> Bu kodda `max_depth=6` peşinen kabul edilmiyor. Kod hangi depth'in
+> validation'da daha iyi olduğunu kendisi ölçüyor.
+
+```python
+import sys
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.metrics import f1_score
+
+
+# ------------------------------------------------------------
+# 1. Dosyaları command line'dan al
+# ------------------------------------------------------------
+
+if len(sys.argv) != 3:
+    print("Usage: python3 Tree.py Train_knight.csv Test_knight.csv")
+    sys.exit(1)
+
+train_path = sys.argv[1]
+test_path = sys.argv[2]
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+
+# ------------------------------------------------------------
+# 2. Target sütununu ayır
+# ------------------------------------------------------------
+
+# Ex04'te target sütunu 'knight' olmalıdır.
+target_column = "knight"
+
+if target_column not in train_df.columns:
+    raise ValueError(
+        f"'{target_column}' sütunu {train_path} içinde bulunamadı."
+    )
+
+
+# ------------------------------------------------------------
+# 3. Feature matrix X ve target y oluştur
+# ------------------------------------------------------------
+
+X = train_df.drop(columns=[target_column])
+y = train_df[target_column]
+
+# Test dosyasında target bulunmaz; sadece feature'lar vardır.
+X_test = test_df.drop(columns=[target_column], errors="ignore")
+
+# Train ve test sütunlarının aynı olduğundan emin ol.
+if list(X.columns) != list(X_test.columns):
+    raise ValueError("Train ve Test feature sütunları aynı değil.")
+
+
+# ------------------------------------------------------------
+# 4. Training / Validation split
+# ------------------------------------------------------------
+
+X_train, X_validation, y_train, y_validation = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    random_state=42,
+    stratify=y,
+)
+
+print("Training samples :", len(X_train))
+print("Validation samples:", len(X_validation))
+print("Test samples      :", len(X_test))
+
+
+# ------------------------------------------------------------
+# 5. Hyperparameter tuning: max_depth
+# ------------------------------------------------------------
+
+candidate_depths = [2, 3, 4, 5, 6, 7, 8, 10, 12, None]
+
+best_depth = None
+best_f1 = -1.0
+
+print("\nValidation sonuçları:")
+print("--------------------")
+
+for depth in candidate_depths:
+    model = DecisionTreeClassifier(
+        criterion="gini",
+        max_depth=depth,
+        random_state=42,
+    )
+
+    model.fit(X_train, y_train)
+
+    validation_pred = model.predict(X_validation)
+
+    score = f1_score(
+        y_validation,
+        validation_pred,
+        pos_label="Jedi",
+    )
+
+    print(f"max_depth={str(depth):>4} -> F1={score:.4f}")
+
+    if score > best_f1:
+        best_f1 = score
+        best_depth = depth
+
+
+# ------------------------------------------------------------
+# 6. En iyi hyperparameter'ı seç
+# ------------------------------------------------------------
+
+print("\nEn iyi hyperparameter:")
+print("max_depth =", best_depth)
+print("Validation F1 =", f"{best_f1:.4f}")
+
+
+# ------------------------------------------------------------
+# 7. Final model oluştur
+# ------------------------------------------------------------
+
+final_model = DecisionTreeClassifier(
+    criterion="gini",
+    max_depth=best_depth,
+    random_state=42,
+)
+
+
+# ------------------------------------------------------------
+# 8. Final modeli tüm labeled training verisiyle eğit
+# ------------------------------------------------------------
+
+final_model.fit(X, y)
+
+
+# ------------------------------------------------------------
+# 9. Test verisi üzerinde prediction yap
+# ------------------------------------------------------------
+
+test_predictions = final_model.predict(X_test)
+
+
+# ------------------------------------------------------------
+# 10. Tree.txt oluştur
+# ------------------------------------------------------------
+
+with open("Tree.txt", "w", encoding="utf-8") as file:
+    for prediction in test_predictions:
+        file.write(f"{prediction}\n")
+
+print("\nTree.txt oluşturuldu.")
+
+
+# ------------------------------------------------------------
+# 11. Ağacı görselleştir
+# ------------------------------------------------------------
+
+plt.figure(figsize=(24, 12))
+
+plot_tree(
+    final_model,
+    feature_names=X.columns,
+    class_names=final_model.classes_,
+    filled=True,
+    rounded=True,
+    fontsize=8,
+)
+
+plt.tight_layout()
+plt.savefig("Tree.png", dpi=150)
+plt.show()
+
+print("Tree.png oluşturuldu.")
+```
+
+---
+
+## 35.9 Bu kodun tam akışı nedir?
+
+Kodun bütün mantığını tek bir diyagramda şöyle okuyabiliriz:
+
+```text
+                 Train_knight.csv
+                        │
+                        ▼
+               ┌─────────────────┐
+               │ X = features   │
+               │ y = knight     │
+               └────────┬────────┘
+                        │
+                        ▼
+              train_test_split()
+                   /          \
+                  /            \
+                 ▼              ▼
+          X_train/y_train   X_validation/y_validation
+                 │              │
+                 │              │
+                 ▼              │
+          Decision Tree         │
+          farklı depth'ler      │
+                 │              │
+                 └──────┬───────┘
+                        ▼
+                 Validation F1
+                        │
+                        ▼
+              en iyi depth'i seç
+                        │
+                        ▼
+              ┌─────────────────┐
+              │  FINAL MODEL    │
+              │ best max_depth  │
+              └────────┬────────┘
+                       │
+          tüm Train_knight.csv
+                       │
+                       ▼
+                  final fit()
+                       │
+                       ▼
+                Test_knight.csv
+                       │
+                       ▼
+                   predict()
+                       │
+                       ▼
+                   Tree.txt
+
+                  ayrıca:
+                       │
+                       ▼
+                    Tree.png
+```
+
+Buradaki en önemli ayrım şudur:
+
+```text
+Validation
+   ↓
+"Hangi hyperparameter daha iyi?"
+
+Final training
+   ↓
+"Seçtiğim modeli mümkün olduğunca çok labeled veriyle eğit."
+
+Test
+   ↓
+"Son tahminleri üret."
+```
+
+---
+
+## 35.10 Kod çalışınca `max_depth=6` nasıl seçilebilir?
+
+Örneğin terminalde şöyle bir sonuç aldığımızı varsayalım:
+
+```text
+Validation sonuçları:
+--------------------
+max_depth=   2 -> F1=0.8400
+max_depth=   3 -> F1=0.8700
+max_depth=   4 -> F1=0.9000
+max_depth=   5 -> F1=0.9150
+max_depth=   6 -> F1=0.9300
+max_depth=   7 -> F1=0.9250
+max_depth=   8 -> F1=0.9100
+max_depth=  10 -> F1=0.8900
+max_depth=  12 -> F1=0.8600
+max_depth=None -> F1=0.8200
+
+En iyi hyperparameter:
+max_depth = 6
+Validation F1 = 0.9300
+```
+
+İşte **bu durumda** `max_depth=6` seçilir.
+
+Kod bunu şu bölümde yapıyor:
+
+```python
+if score > best_f1:
+    best_f1 = score
+    best_depth = depth
+```
+
+Dolayısıyla:
+
+```text
+6'yı insan seçti
+        X
+
+Validation sonuçlarını ölçtük
+        ↓
+6 en yüksek F1 verdi
+        ↓
+6'yı seçtik
+        ✓
+```
+
+Bu, hyperparameter tuning'in temel mantığıdır.
+
+---
+
+## 35.11 Subject'in örnek ağacı ile bizim kodumuz arasındaki ilişki
+
+Subject'te örneğin:
+
+```text
+X[27] <= 0.489
+```
+
+gibi bir root split görüyoruz.
+
+Bizim kodumuzda ise:
+
+```python
+final_model.fit(X, y)
+```
+
+çalıştırıldığında Decision Tree aynı prensiple feature ve threshold'ları
+kendi eğitim verisinden seçer.
+
+Yani kodda şunu yazmıyoruz:
+
+```python
+if X[27] <= 0.489:
+    ...
+```
+
+Bunun yerine:
+
+```python
+model = DecisionTreeClassifier(...)
+model.fit(X, y)
+```
+
+diyoruz.
+
+`fit()` sırasında algoritma:
+
+```text
+feature adayları
+      ↓
+threshold adayları
+      ↓
+Gini hesapları
+      ↓
+split kalitesi
+      ↓
+en iyi split
+      ↓
+child node'lar
+      ↓
+aynı işlemi recursive olarak tekrarla
+      ↓
+leaf'ler
+```
+
+şeklinde ağacı oluşturur.
+
+Bu nedenle Decision Tree'yi anlamanın en önemli noktası, `fit()` çağrısının
+sadece "dosyayı modele vermek" olmadığıdır. Asıl öğrenme işlemi burada
+gerçekleşir.
+
+---
+
+## 35.12 Son bir kavramsal özet
+
+Ex04'te zihninde şu resmi tutman yeterlidir:
+
+```text
+                   VERİ
+                     │
+                     ▼
+             Feature matrix X
+                     │
+                     ▼
+               ROOT NODE
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+       SPLIT 1              SPLIT 1
+     X[j] <= t             X[j] > t
+          │                     │
+          ▼                     ▼
+       CHILD                 CHILD
+          │                     │
+       SPLIT 2              SPLIT 2
+          │                     │
+          ▼                     ▼
+        LEAF                  LEAF
+          │                     │
+          └──────────┬──────────┘
+                     ▼
+                 PREDICTION
+                Jedi / Sith
+```
+
+Ve model geliştirme tarafında:
+
+```text
+Train
+  │
+  ▼
+Fit
+  │
+  ▼
+Validation
+  │
+  ▼
+F1 ölç
+  │
+  ▼
+Hyperparameter değiştir
+  │
+  └───────────────► tekrar Fit / Validation
+                          │
+                          ▼
+                   en iyi modeli seç
+                          │
+                          ▼
+                tüm Training ile final Fit
+                          │
+                          ▼
+                        Test
+                          │
+                          ▼
+                     Tree.txt
+```
+
+Bu iki diyagramı birleştirdiğinde Ex04'ün ana fikri ortaya çıkar:
+
+> **Decision Tree, feature + threshold kararlarıyla veriyi recursive olarak
+> böler; Gini gibi bir criterion split'lerin kalitesini ölçer; validation F1
+> ise bizim hangi model/hyperparameter yapısını kullanacağımıza karar
+> vermemize yardımcı olur.**
