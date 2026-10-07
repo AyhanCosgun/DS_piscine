@@ -7,6 +7,12 @@ from sklearn.metrics import f1_score
 from sklearn.ensemble import RandomForestClassifier
 from pathlib import Path
 
+
+
+
+
+from itertools import product
+
 def load_csv(path: Path) -> pd.DataFrame | None:
     """
     Loads a CSV file into a pandas DataFrame.
@@ -101,14 +107,27 @@ def main():
     print("\n\nValidation sonuçları (Random Forest):")
     print("--------------------")
 
-    best_RF_f1 = -1.0
-    best_n_estimators = 1
-    candidate_n_estimators = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    for n_estimators in candidate_n_estimators:
-        model = RandomForestClassifier(
-            n_estimators=n_estimators,
-            random_state=42,
-        )
+
+
+    # En iyi Random Forest hiperparametreleri
+    best_RF_params = {'n_estimators': [20],
+                      'max_depth': [None],
+                      'min_samples_split': [2],
+                      'min_samples_leaf': [1],
+                      'max_features': ['sqrt'],
+                      'criterion': ['gini'],
+                      'class_weight': ['balanced'],
+                      'bootstrap': [False],
+                      'max_leaf_nodes': [20]}
+
+    best_RF_score = -1
+    keys = list(best_RF_params.keys())
+    # best_RF_f1 = -1.0
+    # best_n_estimators = 1
+    # candidate_n_estimators = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    for values in product(*(best_RF_params[key] for key in keys)):
+        params = dict(zip(keys, values))
+        model = RandomForestClassifier(**params, random_state=42)
 
         model.fit(X_train, y_train)
 
@@ -120,16 +139,24 @@ def main():
             pos_label="Jedi",
         )
 
-        print(f"n_estimators={str(n_estimators):>4} -> F1={score:.4f}")
+        if score > best_RF_score:
+            best_RF_score = score
+            best_params = params.copy()
 
-        if score > best_RF_f1:
-            best_RF_f1 = score
-            best_n_estimators = n_estimators
+    print("Best F1:", best_RF_score)
+    print("Best parameters:")
+    print(best_params)
+
+        # print(f"n_estimators={str(n_estimators):>4} -> F1={score:.4f}")
+
+    #     if score > best_RF_f1:
+    #         best_RF_f1 = score
+    #         best_n_estimators = n_estimators
 
 
-    print("\nEn iyi hyperparameter:")
-    print("n_estimators =", best_n_estimators)
-    print("Validation F1 =", f"{best_RF_f1:.4f}")
+    # print("\nEn iyi hyperparameter:")
+    # print("n_estimators =", best_n_estimators)
+    # print("Validation F1 =", f"{best_RF_f1:.4f}")
 
 
     final_model = DecisionTreeClassifier(
