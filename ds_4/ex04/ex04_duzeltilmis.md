@@ -75,7 +75,9 @@ modeldir.
 
 İki feature olsun:
 
-$$ X=(x_1,x_2) $$ ve sınıflar `Jedi`/`Sith` olsun. Model örneğin:
+$$ X=(x_1,x_2) $$ 
+
+ve sınıflar `Jedi`/`Sith` olsun. Model örneğin:
 ```text
                     x1 <= 0.5 ?
                     /         \
@@ -88,7 +90,15 @@ $$ X=(x_1,x_2) $$ ve sınıflar `Jedi`/`Sith` olsun. Model örneğin:
           Jedi           Sith
 ```
 
-şeklinde bir karar yapısı öğrenebilir. Matematiksel olarak Decision Tree tek bir global doğrusal denklem öğrenmez. Feature uzayını parçalara ayırır. Örneğin: $$ x_1\le0.5 $$ R² düzleminde dikey bir sınır oluşturur; ardından bir bölgede: $$ x_2\le0.3 $$ ile yeni bir bölme yapılabilir. Böylece model, her leaf bölgesine bir sınıf atayan **parçalı karar fonksiyonu** oluşturur. Bu nedenle tree modelleri doğrusal olmayan ilişkileri ve feature etkileşimlerini yakalayabilir. Ayrıca Decision Tree için StandardScaler/MinMaxScaler genellikle zorunlu değildir; çünkü split'in temelinde değerlerin sırası ve threshold vardır.
+şeklinde bir karar yapısı öğrenebilir. Matematiksel olarak Decision Tree tek bir global doğrusal denklem öğrenmez. Feature uzayını parçalara ayırır. Örneğin: 
+
+$$ x_1\le0.5 $$ 
+
+R² düzleminde dikey bir sınır oluşturur; ardından bir bölgede: 
+
+$$ x_2\le0.3 $$ 
+
+ile yeni bir bölme yapılabilir. Böylece model, her leaf bölgesine bir sınıf atayan **parçalı karar fonksiyonu** oluşturur. Bu nedenle tree modelleri doğrusal olmayan ilişkileri ve feature etkileşimlerini yakalayabilir. Ayrıca Decision Tree için StandardScaler/MinMaxScaler genellikle zorunlu değildir; çünkü split'in temelinde değerlerin sırası ve threshold vardır.
 
 ---
 
@@ -115,25 +125,61 @@ gibi gruplar oluşuyorsa çocuklar oldukça saftır. Tree, bu saflığı Gini im
 
 ## Soru 2 --- Gini'nin açılımı ve iyi/kötü değerleri
 
-Buradaki Gini, **Gini impurity** (Gini safsızlığı) anlamındadır. Gelir eşitsizliğini ölçen klasik Gini coefficient ile aynı ölçü değildir. Bir node'da k sınıf olsun ve k'ncı sınıfın oranı `p_k` olsun. Gini impurity: $$ Gini=1-\sum_kp_k^2 $$ İki sınıfta: $$ Gini=1-p_1^2-p_2^2 $$ olur.
+Buradaki Gini, **Gini impurity** (Gini safsızlığı) anlamındadır. Gelir eşitsizliğini ölçen klasik Gini coefficient ile aynı ölçü değildir. Bir node'da k sınıf olsun ve k'ncı sınıfın oranı `p_k` olsun. Gini impurity: 
+
+$$ Gini=1-\sum_kp_k^2 $$ 
+
+İki sınıfta: 
+
+$$ Gini=1-p_1^2-p_2^2 $$ 
+
+olur.
 
 ### Neden `1-p1-p2` değil?
 
-Çünkü olasılıkların toplamı 1'dir: $$ p_1+p_2=1 $$ dolayısıyla: $$ 1-p_1-p_2=0 $$ her iki sınıflı node için daima sıfır olur. Örneğin `p1=0.5`, `p2=0.5` için bu ifade 0 verir; oysa node maksimum derecede karışıktır. Bu nedenle doğru impurity formülü kareleri içerir. Gini ayrıca: $$ Gini=p_1(1-p_1)+p_2(1-p_2) $$ şeklinde de yazılabilir. Genel durumda: $$ Gini=\sum_kp_k(1-p_k) $$ olur.
+Çünkü olasılıkların toplamı 1'dir: 
+
+$$ p_1+p_2=1 $$ 
+
+dolayısıyla: 
+
+$$ 1-p_1-p_2=0 $$ 
+
+her iki sınıflı node için daima sıfır olur. Örneğin `p1=0.5`, `p2=0.5` için bu ifade 0 verir; oysa node maksimum derecede karışıktır. Bu nedenle doğru impurity formülü kareleri içerir. Gini ayrıca:
+
+ $$ Gini=p_1(1-p_1)+p_2(1-p_2) $$
+ 
+ şeklinde de yazılabilir. Genel durumda:
+ 
+  $$ Gini=\sum_kp_k(1-p_k) $$ 
+  
+  olur.
 
 ### Gini'nin iyi/kötü değeri
 
-İki sınıflı problemde: $$ 0\le Gini\le0.5 $$ olur. Tam saf node:
+İki sınıflı problemde:
+
+ $$ 0\le Gini\le0.5 $$ 
+ 
+ olur. Tam saf node:
 ```text
 Jedi=100, Sith=0
 ```
 
-ise: $$ Gini=1-1^2-0^2=0 $$ olur. Bu en saf durumdur. Tam dengeli node:
+ise: 
+
+$$ Gini=1-1^2-0^2=0 $$ 
+
+olur. Bu en saf durumdur. Tam dengeli node:
 ```text
 Jedi=50, Sith=50
 ```
 
-ise: $$ Gini=1-0.5^2-0.5^2=0.5 $$ olur. Bu iki sınıflı problemde maksimum karışıklıktır. Dolayısıyla node açısından:
+ise: 
+
+$$ Gini=1-0.5^2-0.5^2=0.5 $$ 
+
+olur. Bu iki sınıflı problemde maksimum karışıklıktır. Dolayısıyla node açısından:
 ```text
 Gini = 0.0 ───────────────────────────────► Gini = 0.5
    │                                           │
@@ -153,13 +199,27 @@ Parent node 100 örnek içersin:
 50 Jedi 50 Sith
 ```
 
-Parent impurity: $$ G_{parent}=1-0.5^2-0.5^2=0.5 $$ Bir split sonrası:
+Parent impurity: 
+
+$$ G_{parent}=1-0.5^2-0.5^2=0.5 $$
+
+ Bir split sonrası:
 ```text
 Left : 40 örnek → 38 Jedi, 2 Sith
 Right: 60 örnek → 12 Jedi, 48 Sith
 ```
 
-Left impurity: $$ G_L=1-(38/40)^2-(2/40)^2=0.095 $$ Right impurity: $$ G_R=1-(12/60)^2-(48/60)^2=0.32 $$ Node boyutları farklı olduğu için ağırlıklı impurity kullanılır: $$ G_{split}=\frac{40}{100}G_L+\frac{60}{100}G_R=0.23 $$
+Left impurity: 
+
+$$ G_L=1-(38/40)^2-(2/40)^2=0.095 $$
+
+ Right impurity: 
+ 
+ $$ G_R=1-(12/60)^2-(48/60)^2=0.32 $$ 
+ 
+ Node boyutları farklı olduğu için ağırlıklı impurity kullanılır:
+ 
+  $$ G_{split}=\frac{40}{100}G_L+\frac{60}{100}G_R=0.23 $$
 
 Parent impurity `0.5` olduğuna göre bu split'in impurity azalması:
 
@@ -197,7 +257,11 @@ X[27] <= 0.489 gini = 0.471 samples = 381 value = [145, 236]
 `X[27] <= 0.489`: 27 numaralı feature için threshold kararıdır. `samples = 381`: node'da 381 training sample vardır. `value = [145,236]`: node'daki iki sınıfın sample sayılarıdır. Hangi
 sayının `Jedi`, hangisinin `Sith` olduğunu kesinleştirmek için modelin
 `classes_` sırasına bakmak gerekir; sadece `value` dizisine bakarak sınıf
-sırasını varsaymamak gerekir. Dolayısıyla gösterilen node'un Gini'si yaklaşık olarak: $$ Gini=1-(145/381)^2-(236/381)^2 $$ şeklinde hesaplanır.
+sırasını varsaymamak gerekir. Dolayısıyla gösterilen node'un Gini'si yaklaşık olarak: 
+
+$$ Gini=1-(145/381)^2-(236/381)^2 $$ 
+
+şeklinde hesaplanır.
 
 ---
 
@@ -245,7 +309,11 @@ Tree 5 ──► Jedi
            Jedi
 ```
 
-ise majority vote `Jedi` olur. İstatistiksel sezgi: farklı modellerin hataları tamamen aynı değilse ensemble aggregation varyansı azaltabilir. Tam bağımsız ve aynı varyanslı bir ortalama için: $$ Var(\bar X)=\frac{\sigma^2}{B} $$ olur; Random Forest ağaçları tam bağımsız olmadığı için gerçek durum bu kadar basit değildir. Random feature/sample seçiminin amaçlarından biri ağaçlar arasındaki korelasyonu azaltmaktır.
+ise majority vote `Jedi` olur. İstatistiksel sezgi: farklı modellerin hataları tamamen aynı değilse ensemble aggregation varyansı azaltabilir. Tam bağımsız ve aynı varyanslı bir ortalama için: 
+
+$$ Var(\bar X)=\frac{\sigma^2}{B} $$ 
+
+olur; Random Forest ağaçları tam bağımsız olmadığı için gerçek durum bu kadar basit değildir. Random feature/sample seçiminin amaçlarından biri ağaçlar arasındaki korelasyonu azaltmaktır.
 
 ---
 
@@ -400,7 +468,13 @@ Sürümüne göre yeni parametreler bulunabilir; kendi ortamında `help(Decision
 
 ### `criterion`
 
-Split kalitesini ölçer. Yaygın seçenekler `gini`, `entropy`, `log_loss`'tur. Gini: $$ Gini=1-\sum_kp_k^2 $$ Entropy: $$ H=-\sum_kp_k\log(p_k) $$
+Split kalitesini ölçer. Yaygın seçenekler `gini`, `entropy`, `log_loss`'tur. Gini: 
+
+$$ Gini=1-\sum_kp_k^2 $$ 
+
+Entropy: 
+
+$$ H=-\sum_kp_k\log(p_k) $$
 
 ### `splitter` `best`: en iyi split'i ara. `random`: rastgele adaylar arasından seçim yap.
 
@@ -713,7 +787,11 @@ oylaması:
 Jedi = 3 Sith = 2
 ```
 
-olduğu için final prediction `Jedi` olur. Matematiksel sezgi: $$ \hat y=mode\{T_1(x),T_2(x),...,T_B(x)\} $$ Burada `B` tree sayısıdır. `predict_proba(X)` ise tree'lerin kolektif sınıf olasılığı tahminlerini verir.
+olduğu için final prediction `Jedi` olur. Matematiksel sezgi: 
+
+$$ \hat y=mode\{T_1(x),T_2(x),...,T_B(x)\} $$ 
+
+Burada `B` tree sayısıdır. `predict_proba(X)` ise tree'lerin kolektif sınıf olasılığı tahminlerini verir.
 
 ---
 
@@ -750,7 +828,23 @@ sample başına sınıf olasılıklarını döndürür.
 
 # 23. F1'i hatırlayalım
 
-Precision: $$ P=\frac{TP}{TP+FP} $$ Recall: $$ R=\frac{TP}{TP+FN} $$ F1: $$ F1=\frac{2PR}{P+R} $$ ve eşdeğer olarak: $$ F1=\frac{2TP}{2TP+FP+FN} $$ F1 precision ve recall'u birlikte dikkate alır. Önceki Ex00'daki confusion matrix bu nedenle burada doğrudan kullanılır.
+Precision:
+
+ $$ P=\frac{TP}{TP+FP} $$ 
+ 
+ Recall: 
+ 
+ $$ R=\frac{TP}{TP+FN} $$ 
+ 
+ F1:
+ 
+  $$ F1=\frac{2PR}{P+R} $$
+  
+   ve eşdeğer olarak: 
+   
+   $$ F1=\frac{2TP}{2TP+FP+FN} $$
+   
+    F1 precision ve recall'u birlikte dikkate alır. Önceki Ex00'daki confusion matrix bu nedenle burada doğrudan kullanılır.
 
 ---
 
@@ -807,7 +901,11 @@ Böyle bir sonuç bulursan `6` gibi bir değerin neden seçildiğini görürsün
 
 # 25. Ex02 ile Ex04 bağlantısı
 
-Ex02'de feature uzayının varyans yapısını inceliyorduk. PCA uygulanırsa merkezlenmiş veri üzerinden: $$ PC_i=X_cw_i $$ şeklinde yeni eksenler oluşturulur. Bu, boyut azaltma ve bilgi yoğunluğunu inceleme aracıdır. Ex04 ise:
+Ex02'de feature uzayının varyans yapısını inceliyorduk. PCA uygulanırsa merkezlenmiş veri üzerinden:
+
+ $$ PC_i=X_cw_i $$
+ 
+  şeklinde yeni eksenler oluşturulur. Bu, boyut azaltma ve bilgi yoğunluğunu inceleme aracıdır. Ex04 ise:
 ```text
 feature uzayı ↓ sınıfları ayıran karar bölgeleri ↓ classification
 ```
@@ -818,7 +916,15 @@ problemini çözer. PCA bu nedenle Ex04 için zorunlu değildir. Tree modelleri 
 
 # 26. Ex03 ile Ex04 bağlantısı
 
-Ex03'te VIF: $$ VIF_j=\frac{1}{1-R_j^2} $$ ile feature `X_j`'nin diğer feature'lar tarafından ne kadar açıklanabildiğini ölçüyorduk. Örneğin: $$ X_3\approx X_1+X_2 $$ ise redundant information vardır. Ex04'te ise artık:
+Ex03'te VIF: 
+
+$$ VIF_j=\frac{1}{1-R_j^2} $$ 
+
+ile feature `X_j`'nin diğer feature'lar tarafından ne kadar açıklanabildiğini ölçüyorduk. Örneğin: 
+
+$$ X_3\approx X_1+X_2 $$ 
+
+ise redundant information vardır. Ex04'te ise artık:
 > Bu feature'larla Jedi/Sith kararını nasıl verebiliriz? sorusuna geçiyoruz. Pipeline:
 ```text
 Ex02 → varyans / PCA / boyut yapısı Ex03 → multicollinearity / VIF / feature selection Ex04 → classification model
@@ -826,7 +932,11 @@ Ex02 → varyans / PCA / boyut yapısı Ex03 → multicollinearity / VIF / featu
 
 ---
 
-# 27. VIF'i mutlaka uygulamak gerekiyor mu? Hayır. Linear regression'da multicollinearity: $$ \hat\beta=(X^TX)^{-1}X^Ty $$ ifadesindeki `X^T X` yapısını ill-conditioned hale getirerek coefficient variance'larını büyütebilir. Decision Tree ise bu inverse matrix hesabını yapmaz. Bu nedenle:
+# 27. VIF'i mutlaka uygulamak gerekiyor mu? Hayır. Linear regression'da multicollinearity: 
+
+$$ \hat\beta=(X^TX)^{-1}X^Ty $$ 
+
+ifadesindeki `X^T X` yapısını ill-conditioned hale getirerek coefficient variance'larını büyütebilir. Decision Tree ise bu inverse matrix hesabını yapmaz. Bu nedenle:
 > "VIF \< 5 yapmadan Decision Tree çalışmaz." yanlıştır. VIF ile feature azaltmak redundant feature'ları azaltabilir; fakat bunun F1'i artıracağı garanti değildir. Feature selection'ın etkisi yine Validation F1 ile ölçülmelidir. Ayrıca Ex03'te seçtiğin feature setini Validation ve Test'e de **aynı şekilde** uygulamalısın; aksi halde train/test feature uzayları uyuşmaz.
 
 ---
@@ -864,7 +974,15 @@ için zorunlu bir önkoşul olmadığı anlamına gelir.
 
 # 30. 398 × 30 veri setinin lineer cebirsel resmi
 
-Senin datasetini predictor matrisi olarak: $$ X\in\mathbb{R}^{398\times30} $$ ve target'ı: $$ y\in\{Jedi,Sith\}^{398} $$ gibi düşünebiliriz. `knight` target olduğu için classification feature matrix'e dahil edilmez. Ex02:
+Senin datasetini predictor matrisi olarak: 
+
+$$ X\in\mathbb{R}^{398\times30} $$ 
+
+ve target'ı: 
+
+$$ y\in\{Jedi,Sith\}^{398} $$ 
+
+gibi düşünebiliriz. `knight` target olduğu için classification feature matrix'e dahil edilmez. Ex02:
 ```text
 X → variance/covariance → PCA (gerekirse)
 ```
@@ -879,7 +997,15 @@ Ex04:
 X → recursive threshold splits → leaves → y prediction
 ```
 
-Decision Tree'nin temel geometrik işlemi: $$ x_j\le t $$ veya: $$ x_j>t $$ koşullarıyla feature uzayını bölmektir.
+Decision Tree'nin temel geometrik işlemi: 
+
+$$ x_j\le t $$
+
+ veya:
+ 
+  $$ x_j>t $$ 
+  
+  koşullarıyla feature uzayını bölmektir.
 
 ---
 
@@ -1034,7 +1160,13 @@ ensemble'ıdır. Subject'in örneği **Decision Tree** gösterir. Öğrenme ve
 savunma açısından Decision Tree daha açıklayıcı olabilir; performans için
 Random Forest güçlü bir adaydır. Gerçek seçim Validation F1 ile yapılmalıdır.
 
-## Soru 2 --- Gini $$ Gini=1-\sum_kp_k^2 $$ İki sınıfta: $$ Gini=1-p_1^2-p_2^2 $$
+## Soru 2 --- Gini 
+
+$$ Gini=1-\sum_kp_k^2 $$ 
+
+İki sınıfta: 
+
+$$ Gini=1-p_1^2-p_2^2 $$
 
 `1-p1-p2` kullanılmaz; çünkü `p1+p2=1` olduğundan her zaman 0'dır. İki
 sınıfta `Gini=0` saf, `Gini=0.5` maksimum karışık node'dur.
