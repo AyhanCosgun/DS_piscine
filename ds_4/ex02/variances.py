@@ -1,7 +1,6 @@
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
@@ -47,9 +46,9 @@ def main():
     print(cumulative_percentages)
 
     plt.figure(figsize=(10, 8))
-    sns.lineplot(
-        x=range(1, len(cumulative_percentages) + 1),
-        y=cumulative_percentages
+    plt.plot(
+        range(1, len(cumulative_percentages) + 1),
+        cumulative_percentages
         )
     plt.title("Cumulative Explained Variance by PCA Components")
     plt.xlabel("Number of components")

@@ -20,31 +20,20 @@ def load_csv(path: Path) -> pd.DataFrame | None:
         print(f"Error loading CSV: {e}")
         return None
 
+
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python random_forest_tuning.py Train_knight.csv Test_knight.csv")
-        return
 
     output_dir = Path(__file__).resolve().parent
 
-    train_path = output_dir.parent / sys.argv[1]
+    train_path = output_dir.parent / "Train_knight.csv"
     train_data = load_csv(train_path)
     if train_data is None:
         print(f"Failed to load {train_path.name}.")
         print("Aborting...")
         return
 
-    test_path = output_dir.parent / sys.argv[2]
-    test_data = load_csv(test_path)
-    if test_data is None:
-        print(f"Failed to load {test_path.name}.")
-        print("Aborting...")
-        return
-
     X = train_data.drop(columns=["knight"])
     y = train_data["knight"]
-
-    X_test = test_data
 
     X_train, X_validation, y_train, y_validation = train_test_split(
         X,
@@ -53,7 +42,6 @@ def main():
         random_state=42,
         stratify=y,
     )
-
 
     param_grid = {
         "n_estimators": [20, 50, 100],

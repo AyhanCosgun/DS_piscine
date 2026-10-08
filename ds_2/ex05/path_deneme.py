@@ -14,3 +14,7 @@ print(f"Path(__file__).resolve(): {Path(__file__).resolve()}")
 # parent, dosyanın kendisini değil, dosyanın bulunduğu üst klasörü verir.
 # Bu değer; çıktı dosyalarını aynı klasöre kaydetmek için kullanılabilir.
 print(f"output_dir: {Path(__file__).resolve().parent}")
+
+# bir path in en sonundaki dosya veya klasör adını almak için name özelliği kullanılabilir.
+print(f"output_dir.name: {Path(__file__).resolve().parent.name}")
+
