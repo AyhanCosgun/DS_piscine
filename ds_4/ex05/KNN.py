@@ -116,7 +116,7 @@ def main():
 		('scaler', StandardScaler()),
 		('knn', KNeighborsClassifier(n_neighbors=best_f1_k))
 	])
-	final_model.fit(X_train, y_train)
+	final_model.fit(X, y)
 
 	test_predictions = final_model.predict(X_test)
 
