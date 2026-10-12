@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
 import seaborn as sns
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import f1_score, precision_score, accuracy_score
@@ -118,8 +117,8 @@ def main():
     print(results_df)
 
     print(f"\nBest KNN model: k={best_f1_k},\
-           F1 Score (%) = {100*best_KNN_f1:.1f},\
-           Precision (%) = {100*best_KNN_precision:.1f}")
+           F1 Score (%) = {100*best_KNN_f1},\
+           Precision (%) = {100*best_KNN_precision}")
 
     # Model selection based on the best k-value
     final_model = Pipeline([
