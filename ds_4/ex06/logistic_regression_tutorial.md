@@ -340,7 +340,7 @@ Bu bir “doğru katsayıları formülden doğrudan çekip çıkarma” işlemi 
 
 `p = sigmoid(z)` ve cross-entropy birlikte kullanıldığında, `z`'ye göre tek gözlem kaybının türevi çok sadeleşir:
 
-`d(loss)/dz = p - y`
+$$\frac{d\ell_i}{dz_i}=p_i-y_i$$
 
 Bunun anlamı sezgiseldir:
 
@@ -350,15 +350,15 @@ Bunun anlamı sezgiseldir:
 
 Ortalama kaybın ağırlıklar bakımından gradyanı:
 
-`dJ/dw_j = (1/n) * Σ[i=1..n] (p_i-y_i)*x_ij`
+$$\frac{\partial J}{\partial w_j}=\frac{1}{n}\sum_{i=1}^{n}(p_i-y_i)x_{ij}$$
 
 Bias için:
 
-`dJ/db = (1/n) * Σ[i=1..n] (p_i-y_i)`
+$$\frac{\partial J}{\partial b}=\frac{1}{n}\sum_{i=1}^{n}(p_i-y_i)$$
 
 Gradyan, kaybın hangi yönde arttığını gösterir. Gradient descent türü bir yöntem, parametreleri gradyanın ters yönünde günceller. Örneğin:
 
-`w_j_new = w_j_old - learning_rate * dJ/dw_j`
+$$w_j^{(k+1)}=w_j^{(k)}-\eta\frac{\partial J}{\partial w_j}$$
 
 Buradaki `learning_rate`, bir güncellemede ne kadar adım atılacağını belirler. Adım çok büyükse minimumun çevresinde sıçrayabilir; çok küçükse öğrenme yavaşlar. `lbfgs` gibi algoritmalar, yalnızca sabit öğrenme oranlı basit gradient descent kullanmak yerine eğriliğe dair yaklaşık bilgiden de yararlanır.
 
@@ -530,3 +530,211 @@ Tablodaki odds değerleri okunabilirlik için yuvarlanmıştır; z ve p, modelin
 8. **Değerlendirme:** Eğitim verisindeki başarı tek başına yeterli değil; görülmemiş verideki başarı ayrıca ölçülmeli.
 
 Kısacası Logistic Regression, “doğrusal bir puanı sigmoid ile olasılığa dönüştür, gerçek etiketlere verdiğin olasılıklar için negatif log-olabilirliği minimize et” yaklaşımıdır. Sigmoid olasılık modelini, cross-entropy ise bu olasılık modelinin veriye ne kadar uyduğunu ölçen öğrenme hedefini sağlar.
+
+---
+
+# Ek Açıklamalar — Amaç fonksiyonu, konvekslik, L2 ve `lbfgs`
+
+Bu ek, önceki bölümlerdeki optimizasyon ifadelerini parametrelerin açık fonksiyonları olarak gösterir ve kavramlar arasındaki bağı kurar. Denklemler tarayıcıda düzgün işlenebilmesi için tek satırlık `$$ ... $$` biçiminde yazılmıştır.
+
+## Soru 1 — Kayıp fonksiyonu w ve b'nin açık bir fonksiyonu olarak nasıl görünür?
+
+Üç özellikli bir gözlem için önce doğrusal puanı tanımlarız:
+
+$$z_i(w_1,w_2,w_3,b)=w_1x_{i1}+w_2x_{i2}+w_3x_{i3}+b$$
+
+Sigmoid, bu puanı sınıf 1 olasılığına dönüştürür:
+
+$$p_i(w_1,w_2,w_3,b)=\frac{1}{1+e^{-(w_1x_{i1}+w_2x_{i2}+w_3x_{i3}+b)}}$$
+
+Dolayısıyla p_i bağımsız bir değişken değildir; her gözlem için sabit olan x değerlerine ve öğrenilecek w_1,w_2,w_3,b parametrelerine bağlı bir ara çıktıdır. Bunu kayıp fonksiyonuna yerleştirince açık bağımlılık ortaya çıkar:
+
+$$J(w_1,w_2,w_3,b)=-\frac{1}{n}\sum_{i=1}^{n}\left[y_i\log p_i(w_1,w_2,w_3,b)+(1-y_i)\log\left(1-p_i(w_1,w_2,w_3,b)\right)\right]$$
+
+Aynı fonksiyonun sigmoid yerine doğrudan doğrusal puan z_i kullanılarak yazılmış eşdeğer, sayısal açıdan da kullanışlı biçimi şöyledir:
+
+$$J(w_1,w_2,w_3,b)=\frac{1}{n}\sum_{i=1}^{n}\left[\log\left(1+e^{z_i}\right)-y_i z_i\right]$$
+
+Burada z_i, w_1,w_2,w_3,b'nin kısaltmasıdır. Bu eşitlik, fonksiyonun dört parametreli bir yüzey olduğunu söyler. Tek parametre değişkeniyle çizilen grafik bir eğridir; iki parametre için bir yüzeydir; dört parametre için bunu sıradan iki boyutlu bir grafikle bütünüyle çizmek mümkün değildir. Yine de bir parametreyi değiştirip diğerlerini sabit tutarak bir kesit çizilebilir.
+
+Örneğin yalnızca w_1'i değiştirip w_2,w_3,b'yi sabit tutarsak J(w_1) adlı tek değişkenli bir kesit elde ederiz. Konveks bir kesit, aşağıdaki gibi kase biçimindedir:
+
+```text
+J(w1)
+  ^
+  |       *           *
+  |         *       *
+  |           *   *
+  |             *       <- en düşük nokta
+  +------------------------> w1
+```
+
+Bu çizim şematiktir; gerçek eğrinin simetrik olması veya minimumun w_1=0 noktasında bulunması gerekmez.
+
+### Neden minimum arıyoruz? Minimum mutlaka var mıdır?
+
+Kayıp, modelin gerçek etiketlere verdiği olasılıkların ne kadar uyumlu olduğunu sayısallaştırır. Daha küçük cross-entropy, gözlenen doğru etiketlere genel olarak daha yüksek olasılık verildiğini ifade eder. Eğitim, bu kaybı azaltan parametreleri arar.
+
+Fakat önemli bir matematiksel nüans var: **her veri kümesinde, cezasız Logistic Regression kaybının sonlu parametrelerde minimuma ulaşması garanti değildir.** Eğer iki sınıf doğrusal olarak kusursuz ayrılabiliyorsa, katsayıların büyüklüğü sürekli artırılarak eğitim kaybı sıfıra yaklaşabilir; ama sonlu bir w,b değeri kaybı tam sıfır yapmayabilir. Bu durumda minimum yerine erişilemeyen bir infimum söz konusu olabilir.
+
+Pozitif L2 regularization, ağırlıkların sınırsız büyümesini cezalandırır ve genellikle sonlu, kararlı bir çözümü destekler. Yine de teknik varlık koşulları veri tasarımına, bias'ın cezalandırılıp cezalandırılmamasına ve sınıf dağılımına bağlıdır. Bu yüzden “minimum mutlaka vardır” yerine “bu standart, uygun koşullardaki problemde bir minimum aranır; L2 sonlu ve kararlı çözümü destekler” demek daha doğrudur.
+
+## Soru 2 — Konvekslik, yerel minimum ve L2 cezası
+
+### Konveks ne demektir?
+
+Bir fonksiyonun iki noktası arasındaki doğru parçası fonksiyon grafiğinin altında kalıyorsa fonksiyon konvekstir. Bir değişken için sezgisel şekli kase gibidir. Matematiksel olarak her iki parametre vektörü θ_a ve θ_b ile 0 ≤ t ≤ 1 için şu koşul geçerlidir:
+
+$$J(t\theta_a+(1-t)\theta_b)\le tJ(\theta_a)+(1-t)J(\theta_b)$$
+
+Burada θ = (w_1,w_2,w_3,b). Konvekslik, fonksiyonun her yerde yukarı doğru kıvrılan bir yapıda olduğunu söyler; birden fazla farklı yerel çukurun bulunmasını engeller.
+
+### Logistic Regression'ın kaybı neden konvekstir?
+
+Tek gözlemin kaybını doğrusal puan üzerinden yazalım:
+
+$$\ell_i(z_i)=\log(1+e^{z_i})-y_i z_i$$
+
+z'ye göre birinci türev:
+
+$$\frac{d\ell_i}{dz_i}=\sigma(z_i)-y_i=p_i-y_i$$
+
+İkinci türev:
+
+$$\frac{d^2\ell_i}{dz_i^2}=p_i(1-p_i)\ge 0$$
+
+Çünkü sigmoid çıktısı 0 ile 1 arasındadır; bu yüzden p_i(1-p_i) negatif olamaz. İkinci türevin negatif olmaması, tek gözlem kaybının z bakımından konveks olduğunu gösterir.
+
+z_i, parametrelerin doğrusal fonksiyonudur. Bu nedenle bütün gözlemlerin kayıplarını toplamak ve pozitif n sayısına bölmek konveksliği bozmaz. Matris biçiminde ortalama kaybın Hessian matrisi şöyledir:
+
+$$\nabla^2 J(\theta)=\frac{1}{n}X^T R X$$
+
+Burada X, özellik matrisi (bias için gerekirse birler sütunu eklenmiş tasarım matrisi); R ise köşegeninde p_i(1-p_i) bulunan köşegen matristir. Herhangi bir v vektörü için:
+
+$$v^T X^T R Xv=(Xv)^T R(Xv)\ge 0$$
+
+çünkü R'nin köşegen elemanları negatif değildir. Dolayısıyla Hessian pozitif yarı tanımlıdır ve amaç fonksiyonu konvekstir. Bazı verilerde bu matris pozitif tanımlı olmayabilir; bu durumda minimum yine bulunabilir ama parametre çözümü tek olmayabilir veya bazı yönlerde eğrilik çok zayıf olabilir.
+
+### “Yerel minimumda takılmak” ne demektir?
+
+Yerel minimum, yalnızca yakın çevresindeki noktalardan daha düşük kayba sahip noktadır. Global minimum ise tüm parametre uzayındaki en düşük değerdir. Konveks bir fonksiyonda her yerel minimum aynı zamanda global minimumdur. Bu nedenle klasik doğrusal ikili Logistic Regression'da sinir ağlarında sık görülen çok sayıda farklı yerel çukur sorunu tipik olarak yoktur.
+
+```text
+Konveks:                 Konveks olmayan örnek:
+J                        J
+^       __               ^    _      __
+|     /    \             | __/  \____/  \__
+|____/      \___         |       ^       ^
++-------------> θ        +------------------> θ
+       tek çukur                  farklı yerel çukurlar
+```
+
+Şekiller şematiktir. Konveks olmayan fonksiyonda bir algoritma, bulunduğu çukurun yakınında gradyanı sıfıra yaklaştırıp daha iyi bir başka çukura ulaşamayabilir. Konveks fonksiyonda bu tür farklı kalitede yerel minimumlar yoktur. Bununla birlikte kötü ölçeklenme, sayısal hassasiyet, çok düz bölgeler veya durdurma toleransı optimizasyonu yine zorlaştırabilir.
+
+### L2 cezası nedir ve neden konveksliği korur?
+
+L2 regularization, ağırlıkların kareleri toplamını amaç fonksiyonuna ekler. Bu dokümandaki ortalama-kayıp ölçeğinde:
+
+$$J_{reg}(w,b)=J(w,b)+\frac{1}{2Cn}\sum_{j=1}^{3}w_j^2$$
+
+b terimi burada cezaya dahil edilmemiştir; scikit-learn LogisticRegression'ın yaygın L2 düzenlileştirme tanımında intercept genellikle bu ağırlık cezasına dahil edilmez. Katsayı kareleri negatif olamaz ve büyük mutlak katsayılar daha büyük ceza üretir.
+
+Tek bir ağırlık için w_j^2 fonksiyonunun ikinci türevi 2'dir; dolayısıyla kare fonksiyonu konvekstir. Pozitif bir sabitle çarpmak ve konveks J'ye eklemek konveksliği korur. λ = 1/(Cn) dersek cezanın Hessian'ı ağırlıklar bakımından λI'dir; bu matris pozitif yarı tanımlıdır. Böylece toplam Hessian, iki pozitif yarı tanımlı matrisin toplamıdır ve yine pozitif yarı tanımlıdır.
+
+L2 cezası katsayıları sıfıra doğru küçültmeye teşvik eder; katsayıların mutlaka sıfır olmasını sağlamaz. Amaç, yalnızca eğitim verisini açıklamak için aşırı büyük katsayılara ihtiyaç duyan çözümleri pahalılaştırmak ve genelleme performansına yardımcı olmaktır. L2 her zaman test başarısını artırmayı garanti etmez; bunun için validation/test ölçümü gerekir.
+
+## Soru 3 — `C` parametresi neyi kontrol eder?
+
+Bu dosyada kullanılan yazımda L2 katkısı:
+
+$$J_{L2}=\frac{w_1^2+w_2^2+w_3^2}{2Cn}$$
+
+C, regularization gücüyle ters ilişkili bir parametredir:
+
+- Küçük C → ceza katsayısı 1/(2Cn) büyür → büyük ağırlıklar daha pahalı olur → daha güçlü regularization.
+- Büyük C → ceza katsayısı küçülür → ağırlıklara daha az ceza verilir → daha zayıf regularization.
+- C → sonsuz olduğunda ceza katkısı sıfıra yaklaşır; model cezasız Logistic Regression'a yaklaşır.
+
+Sayısal örnek: aynı w ve aynı n sabitken C=0.5 kullanılırsa, C=1'e göre ceza iki katına çıkar. C=2 kullanılırsa ceza yarıya iner. Bu karşılaştırma yalnızca ceza teriminin katsayısını anlatır; model yeniden eğitilince w değerleri de değişeceği için gerçek toplam kayıp tam olarak bu oranla değişmek zorunda değildir.
+
+Buradaki önemli ayrım: C doğrudan bir ağırlık değildir; optimizasyon sırasında hangi ağırlık büyüklüklerinin ne kadar cezalandırılacağını belirleyen hiperparametredir. Veri ölçekleri değişirse regularization'ın etkisi de değişebileceğinden standardizasyon çoğu zaman önemlidir.
+
+## Soru 4 — `lbfgs` nedir? Gradient descent'ten farkı ne?
+
+`lbfgs`, “Limited-memory Broyden–Fletcher–Goldfarb–Shanno” ifadesinin kısaltmasıdır. Türev bilgisi kullanan, quasi-Newton (yaklaşık Newton) türü bir optimizasyon yöntemidir. Buradaki “limited-memory”, tam Hessian matrisini saklamak yerine son adımlardaki parametre ve gradyan değişimlerinden eğrilik hakkında sınırlı miktarda bilgi tutmasını anlatır.
+
+Basit gradient descent güncellemesi:
+
+$$\theta_{k+1}=\theta_k-\eta_k\nabla J(\theta_k)$$
+
+Burada η adım büyüklüğüdür. Yalnızca gradyan yönünü kullanır; adım büyüklüğü seçimi çok önemlidir. Adım aşırı büyükse hedefin iki yanına sıçrayabilir; çok küçükse yavaş ilerler.
+
+Newton yöntemi, gradyanın yanında Hessian'ın eğrilik bilgisini de kullanır:
+
+$$\theta_{k+1}=\theta_k-[\nabla^2J(\theta_k)]^{-1}\nabla J(\theta_k)$$
+
+Tam Hessian'ı hesaplayıp tersini almak yüksek boyutlu problemlerde pahalı olabilir. L-BFGS, Hessian veya ters Hessian'ı açıkça saklamak yerine, yakın geçmişteki gradyan/parametre değişimlerinden ters Hessian etkisini yaklaşıklar. Sonra bu yaklaşık eğrilik bilgisini kullanarak bir arama yönü belirler ve genellikle line search ile uygun adım boyunu seçer.
+
+Özetle L-BFGS, “her seferinde sabit learning rate ile yalnızca gradyanın tersine gitmek” değildir. Gradyan + geçmiş adımlardan çıkarılan eğrilik bilgisi + adım araması kullanır. Bu nedenle çoğu küçük/orta ölçekli Logistic Regression probleminde hızlı yakınsayabilir. Fakat her veri kümesinde en iyi solver olacağı garanti değildir; scikit-learn'de `max_iter`, `tol`, veri ölçeği ve solver seçimi sonucu etkiler.
+
+## Soru 5 — “Amaç değeri” ne demektir?
+
+Amaç fonksiyonu, optimizasyon algoritmasının küçültmeye (veya başka problemlerde büyütmeye) çalıştığı sayısal ölçüttür. Bu örnekte amaç fonksiyonu, ortalama binary cross-entropy ile L2 cezasının toplamıdır:
+
+$$J_{reg}(w,b)=J_{BCE}(w,b)+J_{L2}(w)$$
+
+Verilen katsayılar için dosyada raporlanan değerler:
+
+$$J_{BCE}\approx 0.23554733$$
+
+$$J_{L2}\approx 0.09538714$$
+
+$$J_{reg}\approx 0.23554733+0.09538714=0.33093447$$
+
+0.33093447, bu parametreler ve bu ölçeklendirme için amaç fonksiyonunun aldığı tek bir sayıdır. Algoritma, farklı w,b adaylarında bu sayıyı hesaplayıp azaltmaya çalışır. Bu değer doğrudan “%33 başarı” veya “%33 hata” demek değildir; olasılık kalitesi ve ceza teriminin birleşiminden oluşan bir optimizasyon ölçüsüdür. Modelleri karşılaştırırken aynı kayıp tanımı ve aynı ölçeklendirme kullanılmalıdır.
+
+Bir yazılımın kullandığı amaç fonksiyonunun toplam mı ortalama mı olduğu ve ceza terimini hangi ölçekte eklediği önemlidir. Bu nedenle yukarıdaki sayılar, dosyada açıkça belirtilen normalize edilmiş formülün açıklamasıdır; scikit-learn'ün iç uygulamasındaki ölçeklendirmeyle bire bir eşdeğerlik iddiası, kullanılan sürümün tanımı kontrol edilmeden yapılmamalıdır.
+
+## Soru 6 — Türev ve gradyan denklemlerinin matematiksel yazımı
+
+Aşağıdaki ifadeler, metin olarak yazılmış türev denklemlerinin matematiksel gösterimidir. Burada n gözlem sayısı, x_ij i'inci gözlemin j'inci özelliği, p_i modelin sınıf 1 olasılığı ve y_i gerçek etikettir.
+
+Tek gözlemin kaybının doğrusal puana göre türevi:
+
+$$\frac{\partial \ell_i}{\partial z_i}=p_i-y_i$$
+
+Ortalama kaybın j'inci ağırlığa göre kısmi türevi:
+
+$$\frac{\partial J}{\partial w_j}=\frac{1}{n}\sum_{i=1}^{n}(p_i-y_i)x_{ij}$$
+
+Bias/intercept için türev:
+
+$$\frac{\partial J}{\partial b}=\frac{1}{n}\sum_{i=1}^{n}(p_i-y_i)$$
+
+Ağırlık vektörünün gradyanı, tüm ağırlık türevlerinin vektörüdür:
+
+$$\nabla_w J=\frac{1}{n}X^T(p-y)$$
+
+Bias ile birlikte parametre vektörü θ=(w,b) olarak tanımlanırsa tam gradyan, ağırlık gradyanı ile bias türevini bir araya getirir:
+
+$$\nabla_\theta J=\begin{bmatrix}\frac{1}{n}X^T(p-y)\\[3pt]\frac{1}{n}\sum_{i=1}^{n}(p_i-y_i)\end{bmatrix}$$
+
+Basit gradient descent güncellemesi:
+
+$$w_j^{(k+1)}=w_j^{(k)}-\eta\frac{\partial J}{\partial w_j}$$
+
+Vektör biçiminde:
+
+$$w^{(k+1)}=w^{(k)}-\eta\nabla_w J$$
+
+L2 terimi bu dokümandaki ölçekle eklendiğinde j'inci ağırlığa eklenen ceza türevi:
+
+$$\frac{\partial J_{L2}}{\partial w_j}=\frac{w_j}{Cn}$$
+
+Dolayısıyla düzenlileştirilmiş amaç fonksiyonunun ağırlık gradyanı:
+
+$$\nabla_w J_{reg}=\frac{1}{n}X^T(p-y)+\frac{1}{Cn}w$$
+
+Bu ek gradyan terimi büyük ağırlıkları sıfıra doğru çeken bir katkı yapar. Bias ceza terimine dahil edilmediğinden onun gradyanı bu yazımda değişmez.
+
+> **Notasyon uyarısı:** `∂J/∂w_j` bir skaler kısmi türevdir; `∇_w J` ise bütün ağırlıklara göre türevleri bir araya getiren vektördür. Bu iki gösterim aynı bilgiyi farklı boyutlarda sunar.
